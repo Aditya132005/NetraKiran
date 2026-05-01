@@ -6,15 +6,15 @@ const { initDB } = require('./db/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
-    else cb(new Error('Not allowed by CORS'));
+    if (!origin) return cb(null, true);
+    const allowed =
+      origin.includes('localhost') ||
+      origin.includes('vercel.app') ||
+      origin === process.env.FRONTEND_URL;
+    if (allowed) cb(null, true);
+    else { console.warn('CORS blocked:', origin); cb(new Error('Not allowed by CORS')); }
   },
   credentials: true
 }));
