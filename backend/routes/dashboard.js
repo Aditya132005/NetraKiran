@@ -30,9 +30,9 @@ router.get('/stats', authenticate, adminOnly, async (req, res) => {
       q("SELECT COUNT(*)::int as c FROM orders WHERE status IN ('pending','processing','ready')"),
       q("SELECT COUNT(*)::int as c FROM orders WHERE status='delivered'"),
       q("SELECT COALESCE(SUM(total_amount),0)::float as t FROM orders WHERE status!='cancelled'"),
-      q("SELECT COALESCE(SUM(total_amount),0)::float as t FROM orders WHERE status!='cancelled' AND DATE(created_at)=CURRENT_DATE"),
+      q("SELECT COALESCE(SUM(total_amount),0)::float as t FROM orders WHERE status!='cancelled' AND created_at::date=CURRENT_DATE"),
       q("SELECT COALESCE(SUM(total_amount),0)::float as t FROM orders WHERE status!='cancelled' AND DATE_TRUNC('month',created_at)=DATE_TRUNC('month',NOW())"),
-      q("SELECT COUNT(*)::int as c FROM orders WHERE DATE(created_at)=CURRENT_DATE"),
+      q("SELECT COUNT(*)::int as c FROM orders WHERE created_at::date=CURRENT_DATE"),
       q("SELECT COUNT(*)::int as c FROM appointments WHERE date=CURRENT_DATE AND status!='cancelled'"),
       q("SELECT COUNT(*)::int as c FROM appointments WHERE status='pending'"),
       q(`SELECT o.id,o.status,o.total_amount,o.created_at,u.name as customer_name
