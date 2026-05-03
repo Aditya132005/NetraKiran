@@ -15,6 +15,7 @@ import AdminCustomers from './pages/admin/AdminCustomers'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminAppointments from './pages/admin/AdminAppointments'
 import AdminProducts from './pages/admin/AdminProducts'
+import AdminUsers from './pages/admin/AdminUsers'
 
 import CustomerDashboard from './pages/customer/CustomerDashboard'
 import Shop from './pages/customer/Shop'
@@ -59,6 +60,7 @@ export default function App() {
               <Route path="orders" element={<AdminOrders />} />
               <Route path="appointments" element={<AdminAppointments />} />
               <Route path="products" element={<AdminProducts />} />
+              <Route path="users" element={<AdminUsers />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

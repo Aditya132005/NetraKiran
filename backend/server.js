@@ -27,6 +27,7 @@ app.use('/api/products',     require('./routes/products'));
 app.use('/api/orders',       require('./routes/orders'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/dashboard',    require('./routes/dashboard'));
+app.use('/api/admins',       require('./routes/admins'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'Netra Kiran Optics' }));
 
