@@ -26,13 +26,24 @@ function fmtDay(d) {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [salesView, setSalesView] = useState('monthly') // 'monthly' | 'daily'
+  const [error, setError] = useState(null)
+  const [salesView, setSalesView] = useState('monthly')
 
   useEffect(() => {
-    api.get('/dashboard/stats').then(r => setStats(r.data)).catch(console.error).finally(() => setLoading(false))
+    api.get('/dashboard/stats')
+      .then(r => setStats(r.data))
+      .catch(err => setError(err.response?.data?.error || err.message || 'Failed to load dashboard'))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div className="flex items-center justify-center h-64 text-gray-400">Loading dashboard…</div>
+  if (error) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-3">
+      <p className="text-red-500 font-medium">Dashboard error</p>
+      <p className="text-sm text-gray-500 font-mono bg-gray-100 px-3 py-2 rounded">{error}</p>
+      <button className="text-sm text-navy-700 underline" onClick={() => { setLoading(true); setError(null); api.get('/dashboard/stats').then(r => setStats(r.data)).catch(e => setError(e.message)).finally(() => setLoading(false)) }}>Retry</button>
+    </div>
+  )
   if (!stats) return null
 
   const monthlySales = stats.monthlySales || []
