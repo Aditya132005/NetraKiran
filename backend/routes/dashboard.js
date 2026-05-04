@@ -49,6 +49,38 @@ router.get('/stats', authenticate, adminOnly, async (req, res) => {
       safe('topProducts',     `SELECT oi.product_name, SUM(oi.quantity)::int as qty,
                                 SUM(oi.price*oi.quantity)::float as revenue
                                 FROM order_items oi GROUP BY oi.product_name ORDER BY qty DESC LIMIT 5`),
+      safe('powerRanges',     `SELECT
+                                CASE
+                                  WHEN sph <= -6   THEN 'High Myopia (≤ -6)'
+                                  WHEN sph <= -3   THEN 'Moderate Myopia (-6 to -3)'
+                                  WHEN sph < -0.5  THEN 'Mild Myopia (-3 to -0.5)'
+                                  WHEN sph <= 0.5  THEN 'Plano / Normal'
+                                  WHEN sph <= 2    THEN 'Mild Hyperopia (+0.5 to +2)'
+                                  ELSE                  'High Hyperopia (> +2)'
+                                END as range,
+                                COUNT(*)::int as count
+                                FROM (
+                                  SELECT CAST(NULLIF(TRIM(right_sph),'') AS FLOAT) as sph FROM prescriptions WHERE right_sph IS NOT NULL AND right_sph!=''
+                                  UNION ALL
+                                  SELECT CAST(NULLIF(TRIM(left_sph), '') AS FLOAT) as sph FROM prescriptions WHERE left_sph IS NOT NULL AND left_sph!=''
+                                ) t WHERE sph IS NOT NULL
+                                GROUP BY 1 ORDER BY count DESC`),
+      safe('rxByAge',         `SELECT
+                                CASE
+                                  WHEN u.age BETWEEN 0  AND 12 THEN '0-12 (Children)'
+                                  WHEN u.age BETWEEN 13 AND 19 THEN '13-19 (Teens)'
+                                  WHEN u.age BETWEEN 20 AND 35 THEN '20-35 (Young Adults)'
+                                  WHEN u.age BETWEEN 36 AND 50 THEN '36-50 (Adults)'
+                                  WHEN u.age > 50              THEN '51+ (Seniors)'
+                                END as age_group,
+                                COUNT(p.id)::int as prescriptions,
+                                COUNT(DISTINCT p.user_id)::int as patients
+                                FROM prescriptions p
+                                JOIN users u ON p.user_id=u.id
+                                WHERE u.age IS NOT NULL
+                                GROUP BY 1 ORDER BY MIN(u.age)`),
+      safe('visionTypes',     `SELECT vision_type, COUNT(*)::int as count FROM prescriptions
+                                WHERE vision_type IS NOT NULL GROUP BY vision_type ORDER BY count DESC`),
     ]);
 
     res.json({
@@ -64,6 +96,7 @@ router.get('/stats', authenticate, adminOnly, async (req, res) => {
       pendingAppts:    pendingApptRows[0]?.c ?? 0,
       recentOrders, recentCustomers, ordersByStatus,
       monthlySales, dailySales, topProducts,
+      powerRanges, rxByAge, visionTypes,
     });
   } catch (err) {
     console.error('Dashboard stats error:', err.message);

@@ -191,6 +191,97 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* ── Eye Power Insights ── */}
+      <div>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Eye Power Insights</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          {/* Power ranges */}
+          <div className="card p-5">
+            <h3 className="font-semibold text-gray-800 mb-4">Power Distribution</h3>
+            {!stats.powerRanges?.length ? (
+              <p className="text-gray-400 text-sm text-center py-6">No prescription data yet</p>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const total = stats.powerRanges.reduce((s, r) => s + r.count, 0)
+                  const colors = ['bg-red-400','bg-orange-400','bg-yellow-400','bg-green-400','bg-blue-400','bg-purple-400']
+                  return stats.powerRanges.map((r, i) => {
+                    const pct = Math.round((r.count / total) * 100)
+                    return (
+                      <div key={r.range}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-gray-600 truncate pr-2">{r.range}</span>
+                          <span className="font-medium whitespace-nowrap">{r.count} ({pct}%)</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full">
+                          <div className={`h-2 rounded-full ${colors[i % colors.length]}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* By age group */}
+          <div className="card p-5">
+            <h3 className="font-semibold text-gray-800 mb-4">Prescriptions by Age Group</h3>
+            {!stats.rxByAge?.length ? (
+              <p className="text-gray-400 text-sm text-center py-6">No data yet</p>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const max = Math.max(...stats.rxByAge.map(r => r.prescriptions), 1)
+                  return stats.rxByAge.map(r => (
+                    <div key={r.age_group}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-600">{r.age_group}</span>
+                        <span className="font-medium text-gray-700">{r.prescriptions} rx · {r.patients} patients</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full">
+                        <div className="h-2 rounded-full bg-navy-500" style={{ width: `${Math.round((r.prescriptions / max) * 100)}%` }} />
+                      </div>
+                    </div>
+                  ))
+                })()}
+              </div>
+            )}
+          </div>
+
+          {/* Vision types */}
+          <div className="card p-5">
+            <h3 className="font-semibold text-gray-800 mb-4">Vision Types</h3>
+            {!stats.visionTypes?.length ? (
+              <p className="text-gray-400 text-sm text-center py-6">No data yet</p>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const total = stats.visionTypes.reduce((s, v) => s + v.count, 0)
+                  const colors = ['bg-indigo-400','bg-teal-400','bg-pink-400','bg-amber-400','bg-cyan-400']
+                  return stats.visionTypes.map((v, i) => {
+                    const pct = Math.round((v.count / total) * 100)
+                    return (
+                      <div key={v.vision_type}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-gray-600">{v.vision_type}</span>
+                          <span className="font-medium">{v.count} ({pct}%)</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full">
+                          <div className={`h-2 rounded-full ${colors[i % colors.length]}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+
       {/* ── Recent Customers + Top Products ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="card p-5">
