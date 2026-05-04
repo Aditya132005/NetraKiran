@@ -23,6 +23,7 @@ router.get('/stats', authenticate, adminOnly, async (req, res) => {
       todayApptRows, pendingApptRows,
       recentOrders, recentCustomers, ordersByStatus,
       monthlySales, dailySales, topProducts,
+      powerRanges, rxByAge, visionTypes,
     ] = await Promise.all([
       safe('totalCustomers',  "SELECT COUNT(*)::int as c FROM users WHERE role='customer'"),
       safe('totalOrders',     'SELECT COUNT(*)::int as c FROM orders'),
