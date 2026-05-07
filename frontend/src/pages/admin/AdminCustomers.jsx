@@ -200,11 +200,10 @@ export default function AdminCustomers() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <div><label className="label text-xs">PD Distance</label><input className="input py-1 text-sm" value={rxForm.pd_distance} onChange={setRx('pd_distance')}/></div>
-                    <div><label className="label text-xs">PD Near</label><input className="input py-1 text-sm" value={rxForm.pd_near} onChange={setRx('pd_near')}/></div>
-                    <div><label className="label text-xs">Add Vision R</label><input className="input py-1 text-sm" value={rxForm.add_vision_right} onChange={setRx('add_vision_right')}/></div>
-                    <div><label className="label text-xs">Add Vision L</label><input className="input py-1 text-sm" value={rxForm.add_vision_left} onChange={setRx('add_vision_left')}/></div>
+                    <div><label className="label text-xs">PD Right</label><input className="input py-1 text-sm" value={rxForm.add_vision_right} onChange={setRx('add_vision_right')}/></div>
+                    <div><label className="label text-xs">PD Left</label><input className="input py-1 text-sm" value={rxForm.add_vision_left} onChange={setRx('add_vision_left')}/></div>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <div><label className="label text-xs">Vision Type</label>
@@ -321,7 +320,7 @@ function PrescriptionCard({ rx, onDelete }) {
             </table>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            {[['PD Dist.', rx.pd_distance], ['PD Near', rx.pd_near], ['Add Vis R', rx.add_vision_right], ['Add Vis L', rx.add_vision_left]].map(([k,v]) => (
+            {[['PD Dist.', rx.pd_distance], ['PD Right', rx.add_vision_right], ['PD Left', rx.add_vision_left]].map(([k,v]) => (
               <div key={k} className="bg-gray-50 rounded-lg p-2 text-center">
                 <div className="text-gray-400">{k}</div>
                 <div className="font-medium">{v||'—'}</div>

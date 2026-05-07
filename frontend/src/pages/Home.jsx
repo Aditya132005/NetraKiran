@@ -43,6 +43,15 @@ export default function Home() {
             <div className="flex flex-wrap gap-3">
               <Link to="/shop" className="btn-gold text-base px-7 py-3">Shop Now</Link>
               <Link to="/book-appointment" className="btn-secondary border-white text-white hover:bg-white hover:text-navy-900 text-base px-7 py-3">Book Eye Check</Link>
+              <Link to="/signup" className="relative group inline-flex items-center gap-2 text-base px-7 py-3 rounded-lg font-semibold overflow-hidden"
+                style={{background:'linear-gradient(135deg,#22c55e,#16a34a)', color:'white', boxShadow:'0 0 20px rgba(34,197,94,0.4)'}}>
+                <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{background:'linear-gradient(135deg,#16a34a,#15803d)'}}></span>
+                <svg className="relative w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                <span className="relative">Register Free</span>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></span>
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full"></span>
+              </Link>
             </div>
           </div>
         </div>

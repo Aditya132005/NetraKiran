@@ -68,9 +68,23 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-navy-700 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-navy-400">
-          <p>© {new Date().getFullYear()} Netra Kiran Optics. All rights reserved.</p>
-          <p>LGF/3, Retailx Shopping Complex, Indirapuram, Ghaziabad</p>
+        <div className="border-t border-navy-700 mt-10 pt-6 space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-navy-400">
+            <p>© {new Date().getFullYear()} Netra Kiran Optics. All rights reserved.</p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <span className="hover:text-gold-400 cursor-default transition-colors">Privacy Policy</span>
+              <span className="hover:text-gold-400 cursor-default transition-colors">Terms of Use</span>
+              <span className="hover:text-gold-400 cursor-default transition-colors">Refund Policy</span>
+              <span className="hover:text-gold-400 cursor-default transition-colors">Disclaimer</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-navy-500 text-center leading-relaxed max-w-4xl mx-auto">
+            Netra Kiran Optics is a registered optical retail business. All product images, brand names, and trademarks belong to their respective owners and are used for identification purposes only.
+            Prices are subject to change without notice. Prescriptions dispensed are based on professional examination and customer-provided information — Netra Kiran Optics is not liable for errors arising from
+            incorrect information provided by customers. Eye check-up appointments are advisory in nature and do not replace a certified ophthalmologist consultation for medical conditions.
+            This website is operated for informational and e-commerce purposes only. Governed by the laws of India under the Consumer Protection Act 2019, Information Technology Act 2000, and applicable GST regulations.
+            GST Registration: As applicable · Shop Reg: LGF/3, Retailx Shopping Complex, Indirapuram, Ghaziabad 201010.
+          </p>
         </div>
       </div>
     </footer>

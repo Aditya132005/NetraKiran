@@ -93,12 +93,11 @@ export default function MyPrescriptions() {
                   </div>
 
                   {/* PD and Add Vision */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     {[
                       ['PD Distance', rx.pd_distance],
-                      ['PD Near', rx.pd_near],
-                      ['Add Vision (Right)', rx.add_vision_right],
-                      ['Add Vision (Left)', rx.add_vision_left],
+                      ['PD Right', rx.add_vision_right],
+                      ['PD Left', rx.add_vision_left],
                     ].map(([label, value]) => (
                       <div key={label} className="bg-gray-50 rounded-lg p-3 text-center">
                         <p className="text-xs text-gray-400 mb-1">{label}</p>
