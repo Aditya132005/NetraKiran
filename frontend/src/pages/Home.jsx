@@ -83,18 +83,19 @@ export default function Home() {
   return (
     <div>
       {/* ── Hero ── */}
-      <section className="hero-gradient relative text-white overflow-hidden min-h-[520px]">
-        {/* Parallax background image */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1509695507497-903c140c43b0?w=1600&q=60')",
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            transform: `translateY(${scrollY * 0.25}px)`,
-            willChange: 'transform',
-          }}
-        />
+      <section className="relative text-white overflow-hidden min-h-[520px] bg-navy-900">
+        {/* Video background */}
+        <video
+          autoPlay muted loop playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ transform: `translateY(${scrollY * 0.15}px)`, willChange: 'transform' }}
+        >
+          <source src="https://videos.pexels.com/video-files/8136709/8136709-uhd_2732_1440_24fps.mp4" type="video/mp4" />
+          <source src="https://videos.pexels.com/video-files/8136709/8136709-hd_1920_1080_24fps.mp4" type="video/mp4" />
+        </video>
+
+        {/* Dark overlay so text stays readable */}
+        <div className="absolute inset-0" style={{background:'linear-gradient(to right, rgba(10,20,40,0.88) 55%, rgba(10,20,40,0.4) 100%)'}} />
 
         {/* Floating glasses */}
         {FLOATERS.map((f, i) => (
