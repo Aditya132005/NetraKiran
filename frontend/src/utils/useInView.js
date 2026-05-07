@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 export function useInView(threshold = 0.15) {
   const ref = useRef(null)
   const [inView, setInView] = useState(false)
-
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -14,7 +13,6 @@ export function useInView(threshold = 0.15) {
     observer.observe(el)
     return () => observer.disconnect()
   }, [threshold])
-
   return [ref, inView]
 }
 
@@ -34,4 +32,32 @@ export function useCounter(target, inView, duration = 1400) {
     return () => clearInterval(timer)
   }, [inView, target, duration])
   return count
+}
+
+export function useTypewriter(text, speed = 55, startDelay = 400) {
+  const [displayed, setDisplayed] = useState('')
+  useEffect(() => {
+    setDisplayed('')
+    let i = 0
+    const delay = setTimeout(() => {
+      const iv = setInterval(() => {
+        i++
+        setDisplayed(text.slice(0, i))
+        if (i >= text.length) clearInterval(iv)
+      }, speed)
+      return () => clearInterval(iv)
+    }, startDelay)
+    return () => clearTimeout(delay)
+  }, [text, speed, startDelay])
+  return displayed
+}
+
+export function useScrollY() {
+  const [y, setY] = useState(0)
+  useEffect(() => {
+    const handle = () => setY(window.scrollY)
+    window.addEventListener('scroll', handle, { passive: true })
+    return () => window.removeEventListener('scroll', handle)
+  }, [])
+  return y
 }

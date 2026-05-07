@@ -45,7 +45,7 @@
 .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
 .scrollbar-hide::-webkit-scrollbar { display:none; }
 
-/* ── Animations ── */
+/* ── Keyframes ── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -58,16 +58,78 @@
   from { opacity: 0; transform: scale(0.92); }
   to   { opacity: 1; transform: scale(1); }
 }
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to   { opacity: 1; transform: translateX(0); }
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-14px) rotate(4deg); }
+  66%       { transform: translateY(-6px) rotate(-3deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes rippleOut {
+  to { transform: scale(4); opacity: 0; }
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes waveMove {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes progressGrow {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.animate-fade-in-up  { animation: fadeInUp  0.6s ease both; }
-.animate-fade-in     { animation: fadeIn    0.6s ease both; }
-.animate-pop-in      { animation: popIn     0.5s cubic-bezier(.34,1.56,.64,1) both; }
-.animate-slide-left  { animation: slideInLeft 0.6s ease both; }
+/* ── Animation classes ── */
+.animate-fade-in-up  { animation: fadeInUp 0.6s ease both; }
+.animate-fade-in     { animation: fadeIn   0.6s ease both; }
+.animate-pop-in      { animation: popIn    0.5s cubic-bezier(.34,1.56,.64,1) both; }
+.animate-page-in     { animation: pageIn   0.35s ease both; }
 
-/* scroll-reveal: hidden until JS adds .revealed */
+.hero-gradient {
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #0c2340, #0f172a);
+  background-size: 400% 400%;
+  animation: gradientShift 10s ease infinite;
+}
+
+.animate-float { animation: float 5s ease-in-out infinite; }
+
+/* Shimmer skeleton */
+.shimmer-bg {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* Ripple */
+.ripple-wrap { position: relative; overflow: hidden; }
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transform: scale(0);
+  animation: rippleOut 0.6s linear;
+  pointer-events: none;
+}
+
+/* Card hover glow */
+.card-glow:hover {
+  box-shadow: 0 0 0 2px rgba(251,191,36,0.3), 0 8px 30px rgba(0,0,0,0.12);
+  transform: translateY(-3px);
+  transition: all 0.25s ease;
+}
+
+/* Wave strip */
+.wave-strip { line-height: 0; overflow: hidden; }
+.wave-strip svg { display: block; width: 200%; animation: waveMove 8s linear infinite; }
+
+/* Scroll reveal */
 .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
 .reveal.revealed { opacity: 1; transform: translateY(0); }

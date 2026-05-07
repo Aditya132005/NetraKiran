@@ -1,9 +1,19 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import ScrollProgress from './components/ScrollProgress'
+
+function PageTransition({ children }) {
+  const location = useLocation()
+  return (
+    <div key={location.pathname} className="animate-page-in">
+      {children}
+    </div>
+  )
+}
 
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -28,7 +38,9 @@ function PublicLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <PageTransition>{children}</PageTransition>
+      </main>
       <Footer />
     </div>
   )
@@ -39,6 +51,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
+          <ScrollProgress />
           <Routes>
             {/* Public */}
             <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />

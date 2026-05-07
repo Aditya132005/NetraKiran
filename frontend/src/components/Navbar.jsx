@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
@@ -9,13 +9,19 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handle = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handle, { passive: true })
+    return () => window.removeEventListener('scroll', handle)
+  }, [])
 
   const handleLogout = () => { logout(); navigate('/') }
-
   const isActive = (path) => location.pathname === path
 
   return (
-    <nav className="bg-navy-900 text-white sticky top-0 z-50 shadow-lg">
+    <nav className={`text-white sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-navy-900 shadow-xl' : 'bg-navy-900/95 backdrop-blur-sm shadow-lg'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
