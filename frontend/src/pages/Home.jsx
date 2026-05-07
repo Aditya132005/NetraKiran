@@ -94,8 +94,8 @@ export default function Home() {
           <source src="https://videos.pexels.com/video-files/8136709/8136709-hd_1920_1080_24fps.mp4" type="video/mp4" />
         </video>
 
-        {/* Dark overlay so text stays readable */}
-        <div className="absolute inset-0" style={{background:'linear-gradient(to right, rgba(10,20,40,0.88) 55%, rgba(10,20,40,0.4) 100%)'}} />
+        {/* Dark overlay — heavy left for text, nearly clear right for video */}
+        <div className="absolute inset-0" style={{background:'linear-gradient(to right, rgba(8,18,36,0.82) 38%, rgba(8,18,36,0.25) 70%, rgba(8,18,36,0.05) 100%)'}} />
 
         {/* Floating glasses */}
         {FLOATERS.map((f, i) => (
