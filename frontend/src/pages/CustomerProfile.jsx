@@ -218,61 +218,90 @@ export default function CustomerProfile() {
           <div className="space-y-4">
             {customer.prescriptions.map((rx, i) => (
               <div key={rx.id} className={`border rounded-xl p-4 ${i === 0 ? 'border-navy-200 bg-navy-50' : 'border-gray-100'}`}>
+                {/* Header row */}
                 <div className="flex items-center flex-wrap gap-2 mb-3">
                   {i === 0 && (
                     <span className="text-[10px] font-bold bg-navy-800 text-white px-2 py-0.5 rounded-full uppercase tracking-wide">Latest</span>
                   )}
+                  {rx.prescription_type === 'contact' ? (
+                    <span className="text-xs font-semibold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full">Contact Lens</span>
+                  ) : (
+                    <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Spectacle Lens</span>
+                  )}
                   <span className="text-sm font-medium text-gray-700">
                     {new Date(rx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
-                  {rx.vision_type && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{rx.vision_type}</span>
-                  )}
                   {rx.doctor_name && (
                     <span className="text-xs text-gray-400 ml-auto">Dr. {rx.doctor_name}</span>
                   )}
                 </div>
 
-                <div className="overflow-x-auto -mx-1">
-                  <table className="w-full text-xs min-w-[300px]">
-                    <thead>
-                      <tr className="text-[11px] text-gray-400 uppercase tracking-wider">
-                        <th className="text-left pb-2 pl-1 font-medium w-24">Eye</th>
-                        <th className="pb-2 text-center font-medium">SPH</th>
-                        <th className="pb-2 text-center font-medium">CYL</th>
-                        <th className="pb-2 text-center font-medium">AXIS</th>
-                        <th className="pb-2 text-center font-medium">ADD</th>
-                      </tr>
-                    </thead>
-                    <tbody className="font-mono">
-                      <tr className="border-t border-gray-200">
-                        <td className="py-2 pl-1 text-gray-600 font-sans font-medium text-xs">Right (R)</td>
-                        <td className="text-center py-2">{rx.right_sph || '—'}</td>
-                        <td className="text-center py-2">{rx.right_cyl || '—'}</td>
-                        <td className="text-center py-2">{rx.right_axis || '—'}</td>
-                        <td className="text-center py-2">{rx.right_add || '—'}</td>
-                      </tr>
-                      <tr className="border-t border-gray-100">
-                        <td className="py-2 pl-1 text-gray-600 font-sans font-medium text-xs">Left (L)</td>
-                        <td className="text-center py-2">{rx.left_sph || '—'}</td>
-                        <td className="text-center py-2">{rx.left_cyl || '—'}</td>
-                        <td className="text-center py-2">{rx.left_axis || '—'}</td>
-                        <td className="text-center py-2">{rx.left_add || '—'}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {(rx.pd_distance || rx.pd_near) && (
-                  <div className="flex gap-5 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
-                    {rx.pd_distance && (
-                      <span>PD Distance: <span className="font-mono font-semibold text-gray-700">{rx.pd_distance}</span></span>
-                    )}
-                    {rx.pd_near && (
-                      <span>PD Near: <span className="font-mono font-semibold text-gray-700">{rx.pd_near}</span></span>
-                    )}
+                {rx.prescription_type === 'contact' ? (
+                  /* Contact lens details */
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {[
+                      ['Type', rx.contact_lens_type],
+                      ['Disposable Schedule', rx.disposable_schedule],
+                      ['Pack Quantity', rx.pack_quantity],
+                      ['Number of Lenses', rx.num_lenses],
+                    ].map(([k, v]) => (
+                      <div key={k} className="bg-white rounded-lg p-2.5 border border-gray-100">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mb-0.5">{k}</p>
+                        <p className="font-semibold text-gray-800">{v || '—'}</p>
+                      </div>
+                    ))}
                   </div>
+                ) : (
+                  /* Spectacle lens details */
+                  <>
+                    {rx.vision_type && (
+                      <p className="text-xs text-gray-500 mb-2">{rx.vision_type}</p>
+                    )}
+                    <div className="overflow-x-auto -mx-1">
+                      <table className="w-full text-xs min-w-[300px]">
+                        <thead>
+                          <tr className="text-[11px] text-gray-400 uppercase tracking-wider">
+                            <th className="text-left pb-2 pl-1 font-medium w-24">Eye</th>
+                            <th className="pb-2 text-center font-medium">SPH</th>
+                            <th className="pb-2 text-center font-medium">CYL</th>
+                            <th className="pb-2 text-center font-medium">AXIS</th>
+                            <th className="pb-2 text-center font-medium">ADD</th>
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono">
+                          <tr className="border-t border-gray-200">
+                            <td className="py-2 pl-1 text-gray-600 font-sans font-medium text-xs">Right (OD)</td>
+                            <td className="text-center py-2">{rx.right_sph || '—'}</td>
+                            <td className="text-center py-2">{rx.right_cyl || '—'}</td>
+                            <td className="text-center py-2">{rx.right_axis || '—'}</td>
+                            <td className="text-center py-2">{rx.right_add || '—'}</td>
+                          </tr>
+                          <tr className="border-t border-gray-100">
+                            <td className="py-2 pl-1 text-gray-600 font-sans font-medium text-xs">Left (OS)</td>
+                            <td className="text-center py-2">{rx.left_sph || '—'}</td>
+                            <td className="text-center py-2">{rx.left_cyl || '—'}</td>
+                            <td className="text-center py-2">{rx.left_axis || '—'}</td>
+                            <td className="text-center py-2">{rx.left_add || '—'}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    {(rx.pd_distance || rx.add_vision_right || rx.add_vision_left) && (
+                      <div className="flex flex-wrap gap-5 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                        {rx.pd_distance && (
+                          <span>PD Dist: <span className="font-mono font-semibold text-gray-700">{rx.pd_distance}</span></span>
+                        )}
+                        {rx.add_vision_right && (
+                          <span>PD Right: <span className="font-mono font-semibold text-gray-700">{rx.add_vision_right}</span></span>
+                        )}
+                        {rx.add_vision_left && (
+                          <span>PD Left: <span className="font-mono font-semibold text-gray-700">{rx.add_vision_left}</span></span>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
+
                 {rx.notes && <p className="text-xs text-gray-400 mt-2 italic">{rx.notes}</p>}
               </div>
             ))}

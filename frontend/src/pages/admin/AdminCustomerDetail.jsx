@@ -135,6 +135,10 @@ export default function AdminCustomerDetail() {
       if (editingRxId) {
         const { data } = await api.put(`/customer-profiles/prescriptions/${editingRxId}`, rxForm)
         setPrescriptions(prev => prev.map(p => p.id === editingRxId ? data : p))
+      } else if (rxForm.prescription_type === 'both') {
+        const { data: lensData } = await api.post(`/customer-profiles/${id}/prescriptions`, { ...rxForm, prescription_type: 'lens' })
+        const { data: contactData } = await api.post(`/customer-profiles/${id}/prescriptions`, { ...rxForm, prescription_type: 'contact' })
+        setPrescriptions(prev => [lensData, contactData, ...prev])
       } else {
         const { data } = await api.post(`/customer-profiles/${id}/prescriptions`, rxForm)
         setPrescriptions(prev => [data, ...prev])
@@ -337,8 +341,11 @@ export default function AdminCustomerDetail() {
             </h4>
 
             {/* Prescription type selector */}
-            <div className="grid grid-cols-2 gap-2">
-              {[['lens','Spectacle Lens'],['contact','Contact Lens']].map(([val, label]) => (
+            <div className={`grid gap-2 ${editingRxId ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {(editingRxId
+                ? [['lens','Spectacle Lens'],['contact','Contact Lens']]
+                : [['lens','Spectacle Lens'],['contact','Contact Lens'],['both','Both']]
+              ).map(([val, label]) => (
                 <button
                   key={val}
                   type="button"
@@ -354,7 +361,83 @@ export default function AdminCustomerDetail() {
               ))}
             </div>
 
-            {rxForm.prescription_type === 'lens' ? (
+            {rxForm.prescription_type === 'both' ? (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Section A · Spectacle Lens Details</p>
+                <div className="overflow-x-auto">
+                  <table className="text-xs w-full">
+                    <thead>
+                      <tr className="bg-navy-800 text-white">
+                        <th className="p-2">Eye</th><th className="p-2">SPH</th><th className="p-2">CYL</th><th className="p-2">AXIS</th><th className="p-2">ADD</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="bg-white">
+                        <td className="p-1 font-medium text-center">OD (Right)</td>
+                        {['right_sph','right_cyl','right_axis','right_add'].map(f => (
+                          <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={rxForm[f]} onChange={setRx(f)}/></td>
+                        ))}
+                      </tr>
+                      <tr className="bg-gray-50">
+                        <td className="p-1 font-medium text-center">OS (Left)</td>
+                        {['left_sph','left_cyl','left_axis','left_add'].map(f => (
+                          <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={rxForm[f]} onChange={setRx(f)}/></td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div><label className="label text-xs">PD Distance</label><input className="input py-1 text-sm" value={rxForm.pd_distance} onChange={setRx('pd_distance')}/></div>
+                  <div><label className="label text-xs">PD Right</label><input className="input py-1 text-sm" value={rxForm.add_vision_right} onChange={setRx('add_vision_right')}/></div>
+                  <div><label className="label text-xs">PD Left</label><input className="input py-1 text-sm" value={rxForm.add_vision_left} onChange={setRx('add_vision_left')}/></div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="label text-xs">Vision Type</label>
+                    <select className="input py-1 text-sm" value={rxForm.vision_type} onChange={setRx('vision_type')}>
+                      {['Single Vision','Progressive','Bifocal','Trifocal','Tinted','Photochromic','Blue Cut','Hardcoat'].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label text-xs">Power Source</label>
+                    <select className="input py-1 text-sm" value={rxForm.power_source} onChange={setRx('power_source')}>
+                      {['Shop','External Doctor','Self-Provided','Other'].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-1">Section B · Contact Lens Details</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="label text-xs">Type of Contact Lens</label>
+                    <select className="input py-1 text-sm" value={rxForm.contact_lens_type} onChange={setRx('contact_lens_type')}>
+                      <option value="">Select type…</option>
+                      {['Soft Contact Lenses','Orthokeratology (Ortho-K) Lenses','Colored Contact Lenses','Daily Disposable Lenses'].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label text-xs">Disposable Schedule</label>
+                    <select className="input py-1 text-sm" value={rxForm.disposable_schedule} onChange={setRx('disposable_schedule')}>
+                      <option value="">Select schedule…</option>
+                      {['Daily Disposable','Bi-Weekly Disposable','Monthly Disposable','Yearly Disposable'].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label text-xs">Pack Quantity</label>
+                    <select className="input py-1 text-sm" value={rxForm.pack_quantity} onChange={setRx('pack_quantity')}>
+                      <option value="">Select pack…</option>
+                      {['Trial Pack','Pack of 1','Pack of 2','Pack of 3','Pack of 4','Pack of 5'].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label text-xs">Number of Lenses</label>
+                    <input className="input py-1 text-sm" type="number" min="1" placeholder="e.g. 6, 12, 30" value={rxForm.num_lenses} onChange={setRx('num_lenses')}/>
+                  </div>
+                </div>
+                <div><label className="label text-xs">Doctor</label><input className="input py-1 text-sm" placeholder="Dr. ..." value={rxForm.doctor_name} onChange={setRx('doctor_name')}/></div>
+                <div><label className="label text-xs">Notes</label><textarea className="input text-sm resize-none" rows="2" value={rxForm.notes} onChange={setRx('notes')}/></div>
+              </>
+            ) : rxForm.prescription_type === 'lens' ? (
               <>
                 <div className="overflow-x-auto">
                   <table className="text-xs w-full">
