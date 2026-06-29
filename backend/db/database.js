@@ -151,6 +151,10 @@ async function initDB() {
     ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL
   `);
 
+  await pool.query(`
+    ALTER TABLE prescriptions ALTER COLUMN user_id DROP NOT NULL
+  `);
+
   // Seed admin
   const { rows: adminRows } = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");
   if (!adminRows.length) {
