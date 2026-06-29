@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import api from '../../utils/api'
 import { useCart } from '../../context/CartContext'
 
@@ -29,6 +29,7 @@ export default function Shop() {
   const [trending, setTrending] = useState(false)
   const [added, setAdded] = useState({})
   const { addItem } = useCart()
+  const navigate = useNavigate()
 
   useEffect(() => {
     setLoading(true)
@@ -174,7 +175,7 @@ export default function Shop() {
                 const disc = p.original_price ? Math.round((1 - p.price / p.original_price) * 100) : 0
                 const features = p.features ? p.features.split(',') : []
                 return (
-                  <div key={p.id} className="card overflow-hidden group flex flex-col">
+                  <div key={p.id} className="card overflow-hidden group flex flex-col cursor-pointer" onClick={() => navigate(`/product/${p.id}`)}>
                     {/* Image */}
                     <div className="relative overflow-hidden bg-gray-100 h-52">
                       <img src={p.image_url || 'https://via.placeholder.com/400x300?text=Eyewear'} alt={p.name}
@@ -219,10 +220,18 @@ export default function Shop() {
                         {p.original_price && <span className="text-gray-400 text-xs line-through">₹{p.original_price?.toLocaleString()}</span>}
                       </div>
 
-                      <button onClick={() => handleAdd(p)}
-                        className={`w-full text-sm py-2.5 rounded-lg font-medium transition-all duration-200 ${added[p.id] ? 'bg-green-600 text-white' : 'bg-navy-800 hover:bg-navy-900 text-white'}`}>
-                        {added[p.id] ? '✓ Added to Cart' : 'Add to Cart'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); navigate(`/product/${p.id}`) }}
+                          className="flex-1 text-sm py-2.5 rounded-lg font-medium border border-navy-800 text-navy-800 hover:bg-navy-50 transition-all duration-200">
+                          View Details
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleAdd(p) }}
+                          className={`flex-1 text-sm py-2.5 rounded-lg font-medium transition-all duration-200 ${added[p.id] ? 'bg-green-600 text-white' : 'bg-navy-800 hover:bg-navy-900 text-white'}`}>
+                          {added[p.id] ? '✓ Added' : 'Add to Cart'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )

@@ -17,6 +17,7 @@ function PageTransition({ children }) {
 
 import Home from './pages/Home'
 import Login from './pages/Login'
+import ProductDetail from './pages/ProductDetail'
 
 import CustomerSearch from './pages/CustomerSearch'
 import CustomerRegister from './pages/CustomerRegister'
@@ -25,6 +26,7 @@ import CustomerProfile from './pages/CustomerProfile'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminCustomers from './pages/admin/AdminCustomers'
+import AdminCustomerDetail from './pages/admin/AdminCustomerDetail'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminAppointments from './pages/admin/AdminAppointments'
 import AdminProducts from './pages/admin/AdminProducts'
@@ -60,6 +62,7 @@ export default function App() {
             <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
             <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
             <Route path="/shop" element={<PublicLayout><Shop /></PublicLayout>} />
+            <Route path="/product/:id" element={<PublicLayout><ProductDetail /></PublicLayout>} />
             <Route path="/book-appointment" element={<PublicLayout><BookAppointment /></PublicLayout>} />
 
             {/* Customer profile system (no auth required) */}
@@ -77,6 +80,7 @@ export default function App() {
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="customers" element={<AdminCustomers />} />
+              <Route path="customers/:id" element={<AdminCustomerDetail />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="appointments" element={<AdminAppointments />} />
               <Route path="products" element={<AdminProducts />} />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../../utils/api'
 
+
 const EMPTY = { name:'', category:'frame', brand:'', frame_type:'Full Rim', lens_type:'', price:'', original_price:'', image_url:'', description:'', features:'', stock:100, trending:false, gender:'unisex' }
 const CATEGORIES = ['frame','sunglasses','lens','accessory']
 const FRAME_TYPES = ['Full Rim','Half Rim','Rimless']
@@ -14,7 +15,10 @@ export default function AdminProducts() {
   const [editId, setEditId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [productImages, setProductImages] = useState([])
+  const [uploadingExtra, setUploadingExtra] = useState(false)
   const fileRef = useRef(null)
+  const extraFileRef = useRef(null)
 
   const load = () => {
     setLoading(true)
@@ -26,13 +30,18 @@ export default function AdminProducts() {
 
   const set = k => e => setForm(p => ({ ...p, [k]: e.type === 'checkbox' ? e.checked : e.target.value }))
 
-  const openEdit = (p) => {
+  const openEdit = async (p) => {
     setForm({ ...p, trending: p.trending === 1 })
     setEditId(p.id)
+    setProductImages([])
     setShowForm(true)
+    try {
+      const { data } = await api.get(`/products/${p.id}`)
+      setProductImages(data.images || [])
+    } catch {}
   }
 
-  const openAdd = () => { setForm({ ...EMPTY }); setEditId(null); setShowForm(true) }
+  const openAdd = () => { setForm({ ...EMPTY }); setEditId(null); setProductImages([]); setShowForm(true) }
 
   const save = async (e) => {
     e.preventDefault()
@@ -46,6 +55,34 @@ export default function AdminProducts() {
     if (!confirm('Delete this product?')) return
     await api.delete(`/products/${id}`)
     load()
+  }
+
+  const handleExtraImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingExtra(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      await api.post(`/products/${editId}/images`, fd)
+      const { data } = await api.get(`/products/${editId}`)
+      setProductImages(data.images || [])
+    } catch (err) {
+      alert(err.response?.data?.error || 'Upload failed')
+    } finally {
+      setUploadingExtra(false)
+      if (extraFileRef.current) extraFileRef.current.value = ''
+    }
+  }
+
+  const deleteProductImage = async (imageId) => {
+    if (!confirm('Delete this image?')) return
+    try {
+      await api.delete(`/products/images/${imageId}`)
+      setProductImages(prev => prev.filter(img => img.id !== imageId))
+    } catch (err) {
+      alert(err.response?.data?.error || 'Delete failed')
+    }
   }
 
   const handleImageUpload = async (e) => {
@@ -218,6 +255,57 @@ export default function AdminProducts() {
                 {editId ? 'Save Changes' : 'Add Product'}
               </button>
             </form>
+
+            {/* Product Images — only for existing products */}
+            {editId && (
+              <div className="border-t pt-4 mt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-sm text-gray-700">Additional Images</h4>
+                  <button
+                    type="button"
+                    onClick={() => extraFileRef.current?.click()}
+                    disabled={uploadingExtra}
+                    className="text-xs px-3 py-1.5 bg-navy-800 text-white rounded-lg hover:bg-navy-900 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  >
+                    {uploadingExtra ? (
+                      <><div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/><span>Uploading…</span></>
+                    ) : (
+                      '+ Add Image'
+                    )}
+                  </button>
+                </div>
+                <input
+                  ref={extraFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleExtraImageUpload}
+                />
+                {productImages.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-3 bg-gray-50 rounded-lg">No additional images uploaded</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {productImages.map(img => (
+                      <div key={img.id} className="relative group">
+                        <img
+                          src={img.image_url}
+                          alt=""
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          onError={e => { e.target.src = 'https://via.placeholder.com/64?text=?' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => deleteProductImage(img.id)}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] items-center justify-center hidden group-hover:flex"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

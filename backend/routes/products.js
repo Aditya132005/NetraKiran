@@ -52,7 +52,11 @@ router.get('/:id', async (req, res) => {
   try {
     const { rows: [product] } = await pool.query('SELECT * FROM products WHERE id=$1', [req.params.id]);
     if (!product) return res.status(404).json({ error: 'Product not found' });
-    res.json(product);
+    const { rows: images } = await pool.query(
+      'SELECT * FROM product_images WHERE product_id=$1 ORDER BY sort_order, id',
+      [req.params.id]
+    );
+    res.json({ ...product, images });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -82,6 +86,33 @@ router.put('/:id', authenticate, adminOnly, async (req, res) => {
        WHERE id=$14`,
       [name,category,brand,frame_type,lens_type,price,original_price,image_url,description,features,stock,trending?1:0,gender,req.params.id]
     );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:id/images', authenticate, adminOnly, upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  try {
+    const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const { rows: [{ count }] } = await pool.query(
+      'SELECT COUNT(*)::int as count FROM product_images WHERE product_id=$1',
+      [req.params.id]
+    );
+    const { rows: [img] } = await pool.query(
+      'INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1,$2,$3) RETURNING *',
+      [req.params.id, url, count]
+    );
+    res.json(img);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/images/:imageId', authenticate, adminOnly, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM product_images WHERE id=$1', [req.params.imageId]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -70,16 +70,62 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// POST /:id/prescriptions — add a new prescription for this customer
+router.post('/:id/prescriptions', async (req, res) => {
+  try {
+    const {
+      right_sph, right_cyl, right_axis, right_add,
+      left_sph, left_cyl, left_axis, left_add,
+      pd_distance, pd_near, add_vision_right, add_vision_left,
+      vision_type, doctor_name, power_source, notes
+    } = req.body;
+    const { rows: [rx] } = await pool.query(
+      `INSERT INTO prescriptions
+        (customer_id, right_sph, right_cyl, right_axis, right_add,
+         left_sph, left_cyl, left_axis, left_add,
+         pd_distance, pd_near, add_vision_right, add_vision_left,
+         vision_type, doctor_name, power_source, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [req.params.id,
+       right_sph||null, right_cyl||null, right_axis||null, right_add||null,
+       left_sph||null, left_cyl||null, left_axis||null, left_add||null,
+       pd_distance||null, pd_near||null, add_vision_right||null, add_vision_left||null,
+       vision_type||'Single Vision', doctor_name||null, power_source||'Shop', notes||null]
+    );
+    res.json(rx);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /:id/visits — record a new visit
 router.post('/:id/visits', async (req, res) => {
   try {
-    const { notes, discount_given, total_amount, items_purchased } = req.body;
+    const { notes, discount_given, total_amount, items_purchased, visit_date } = req.body;
     const { rows: [visit] } = await pool.query(
-      `INSERT INTO customer_visits (customer_id, notes, discount_given, total_amount, items_purchased)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [req.params.id, notes || null, discount_given || null,
+      `INSERT INTO customer_visits (customer_id, visit_date, notes, discount_given, total_amount, items_purchased)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [req.params.id, visit_date || new Date(), notes || null, discount_given || null,
        total_amount || null, items_purchased || null]
     );
+    res.json(visit);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /visits/:visitId — update a visit record
+router.put('/visits/:visitId', async (req, res) => {
+  try {
+    const { visit_date, notes, discount_given, total_amount, items_purchased } = req.body;
+    const { rows: [visit] } = await pool.query(
+      `UPDATE customer_visits
+       SET visit_date=$1, notes=$2, discount_given=$3, total_amount=$4, items_purchased=$5
+       WHERE id=$6 RETURNING *`,
+      [visit_date || new Date(), notes||null, discount_given||null,
+       total_amount||null, items_purchased||null, req.params.visitId]
+    );
+    if (!visit) return res.status(404).json({ error: 'Visit not found' });
     res.json(visit);
   } catch (err) {
     res.status(500).json({ error: err.message });
