@@ -58,13 +58,15 @@ export default function AdminProducts() {
   }
 
   const handleExtraImageUpload = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
     setUploadingExtra(true)
     try {
-      const fd = new FormData()
-      fd.append('image', file)
-      await api.post(`/products/${editId}/images`, fd)
+      await Promise.all(files.map(file => {
+        const fd = new FormData()
+        fd.append('image', file)
+        return api.post(`/products/${editId}/images`, fd)
+      }))
       const { data } = await api.get(`/products/${editId}`)
       setProductImages(data.images || [])
     } catch (err) {
@@ -270,7 +272,7 @@ export default function AdminProducts() {
                     {uploadingExtra ? (
                       <><div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/><span>Uploading…</span></>
                     ) : (
-                      '+ Add Image'
+                      '+ Add Images'
                     )}
                   </button>
                 </div>
@@ -278,6 +280,7 @@ export default function AdminProducts() {
                   ref={extraFileRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
                   onChange={handleExtraImageUpload}
                 />

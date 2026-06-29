@@ -132,6 +132,61 @@ router.put('/visits/:visitId', async (req, res) => {
   }
 });
 
+// DELETE /visits/:visitId
+router.delete('/visits/:visitId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM customer_visits WHERE id=$1 RETURNING id', [req.params.visitId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Visit not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /prescriptions/:prescriptionId — update a prescription
+router.put('/prescriptions/:prescriptionId', async (req, res) => {
+  try {
+    const {
+      right_sph, right_cyl, right_axis, right_add,
+      left_sph, left_cyl, left_axis, left_add,
+      pd_distance, pd_near, add_vision_right, add_vision_left,
+      vision_type, doctor_name, power_source, notes
+    } = req.body;
+    const { rows: [rx] } = await pool.query(
+      `UPDATE prescriptions
+       SET right_sph=$1, right_cyl=$2, right_axis=$3, right_add=$4,
+           left_sph=$5, left_cyl=$6, left_axis=$7, left_add=$8,
+           pd_distance=$9, pd_near=$10, add_vision_right=$11, add_vision_left=$12,
+           vision_type=$13, doctor_name=$14, power_source=$15, notes=$16
+       WHERE id=$17 RETURNING *`,
+      [right_sph||null, right_cyl||null, right_axis||null, right_add||null,
+       left_sph||null, left_cyl||null, left_axis||null, left_add||null,
+       pd_distance||null, pd_near||null, add_vision_right||null, add_vision_left||null,
+       vision_type||'Single Vision', doctor_name||null, power_source||'Shop', notes||null,
+       req.params.prescriptionId]
+    );
+    if (!rx) return res.status(404).json({ error: 'Prescription not found' });
+    res.json(rx);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /prescriptions/:prescriptionId
+router.delete('/prescriptions/:prescriptionId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM prescriptions WHERE id=$1 RETURNING id', [req.params.prescriptionId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Prescription not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /:id — update customer info
 router.put('/:id', async (req, res) => {
   try {
