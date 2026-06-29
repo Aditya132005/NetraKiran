@@ -110,6 +110,38 @@ async function initDB() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(20),
+      full_name VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NOT NULL UNIQUE,
+      email VARCHAR(255) UNIQUE,
+      age INTEGER,
+      gender VARCHAR(20),
+      address TEXT,
+      discount NUMERIC(5,2) DEFAULT 0,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS customer_visits (
+      id SERIAL PRIMARY KEY,
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      visit_date TIMESTAMP DEFAULT NOW(),
+      notes TEXT,
+      discount_given NUMERIC(5,2),
+      total_amount NUMERIC(10,2),
+      items_purchased TEXT
+    )
+  `);
+
+  await pool.query(`
+    ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL
+  `);
+
   // Seed admin
   const { rows: adminRows } = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");
   if (!adminRows.length) {

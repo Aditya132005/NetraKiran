@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '../../utils/api'
 
 const EMPTY = { name:'', category:'frame', brand:'', frame_type:'Full Rim', lens_type:'', price:'', original_price:'', image_url:'', description:'', features:'', stock:100, trending:false, gender:'unisex' }
@@ -13,6 +13,8 @@ export default function AdminProducts() {
   const [form, setForm] = useState({ ...EMPTY })
   const [editId, setEditId] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef(null)
 
   const load = () => {
     setLoading(true)
@@ -44,6 +46,23 @@ export default function AdminProducts() {
     if (!confirm('Delete this product?')) return
     await api.delete(`/products/${id}`)
     load()
+  }
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const { data } = await api.post('/products/upload-image', fd)
+      setForm(p => ({ ...p, image_url: data.url }))
+    } catch (err) {
+      alert(err.response?.data?.error || 'Image upload failed')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
   }
 
   return (
@@ -148,7 +167,45 @@ export default function AdminProducts() {
                 </div>
               </div>
 
-              <div><label className="label">Image URL</label><input className="input" type="url" placeholder="https://…" value={form.image_url} onChange={set('image_url')}/></div>
+              {/* Image URL + Upload */}
+              <div>
+                <label className="label">Product Image</label>
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1"
+                    type="url"
+                    placeholder="https://… or upload below"
+                    value={form.image_url}
+                    onChange={set('image_url')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="flex-shrink-0 px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 transition-colors disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5">
+                    {uploading ? (
+                      <><div className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin"/><span>Uploading…</span></>
+                    ) : (
+                      <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg><span>Upload</span></>
+                    )}
+                  </button>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                {form.image_url && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img src={form.image_url} alt="Preview" className="w-14 h-14 rounded-lg object-cover border border-gray-200"
+                      onError={e => { e.target.style.display = 'none' }}/>
+                    <p className="text-xs text-gray-400 truncate">{form.image_url}</p>
+                  </div>
+                )}
+              </div>
+
               <div><label className="label">Description</label><textarea className="input resize-none" rows="2" value={form.description} onChange={set('description')}/></div>
               <div><label className="label">Features (comma-separated)</label><input className="input" placeholder="UV400,Anti-Glare,Lightweight" value={form.features} onChange={set('features')}/></div>
 

@@ -72,6 +72,7 @@ export default function Home() {
   const [catsRef,  catsInView]  = useInView(0.1)
   const [whyRef,   whyInView]   = useInView(0.1)
   const [prodRef,  prodInView]  = useInView(0.05)
+  const [ctaRef,   ctaInView]   = useInView(0.1)
 
   const years     = useCounter(15,    statsInView)
   const customers = useCounter(10000, statsInView)
@@ -94,7 +95,7 @@ export default function Home() {
           <source src="https://videos.pexels.com/video-files/8136709/8136709-hd_1920_1080_24fps.mp4" type="video/mp4" />
         </video>
 
-        {/* Dark overlay — heavy left for text, nearly clear right for video */}
+        {/* Dark overlay */}
         <div className="absolute inset-0" style={{background:'linear-gradient(to right, rgba(8,18,36,0.82) 38%, rgba(8,18,36,0.25) 70%, rgba(8,18,36,0.05) 100%)'}} />
 
         {/* Floating glasses */}
@@ -136,18 +137,16 @@ export default function Home() {
             <div className="flex flex-wrap gap-3 animate-fade-in-up" style={{animationDelay:'0.8s'}}>
               <Link to="/shop" className="btn-gold ripple-wrap text-base px-7 py-3" onClick={addRipple}>Shop Now</Link>
               <Link to="/book-appointment" className="ripple-wrap btn-secondary border-white text-white hover:bg-white hover:text-navy-900 text-base px-7 py-3" onClick={addRipple}>Book Eye Check</Link>
-              <Link to="/signup"
+              <Link to="/customer-search"
                 className="ripple-wrap relative group inline-flex items-center gap-2 text-base px-7 py-3 rounded-lg font-semibold overflow-hidden"
                 style={{background:'linear-gradient(135deg,#22c55e,#16a34a)', color:'white', boxShadow:'0 0 22px rgba(34,197,94,0.45)'}}
                 onClick={addRipple}>
                 <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{background:'linear-gradient(135deg,#16a34a,#15803d)'}}/>
                 <svg className="relative w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
                 </svg>
-                <span className="relative">Register Free</span>
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"/>
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full"/>
+                <span className="relative">Find Customer</span>
               </Link>
             </div>
           </div>
@@ -257,17 +256,54 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA Banner ── */}
-      <section className="bg-navy-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 text-center">
-          <h2 className="font-heading text-3xl font-bold mb-3">Ready for Clearer Vision?</h2>
-          <p className="text-navy-300 mb-8 max-w-xl mx-auto">Book a free eye check-up with our expert optician. Walk-in or appointment — we're here for you.</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/book-appointment" className="ripple-wrap btn-gold text-base px-8 py-3" onClick={addRipple}>Book Appointment</Link>
-            <a href="tel:07011295507" className="ripple-wrap btn-secondary border-white text-white hover:bg-white hover:text-navy-900 text-base px-8 py-3" onClick={addRipple}>
-              Call: 070112 95507
-            </a>
+      {/* ── Customer Search CTA ── */}
+      <section className="bg-navy-900 text-white" ref={ctaRef}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+
+            {/* Left: text */}
+            <div className={`flex-1 text-center lg:text-left ${ctaInView ? 'animate-fade-in-up' : 'opacity-0'}`}>
+              <h2 className="font-heading text-3xl font-bold mb-3">Customer Lookup</h2>
+              <p className="text-navy-300 mb-6 max-w-md mx-auto lg:mx-0">
+                Search existing customer profiles by name, phone, or email. View their prescriptions, visit history, and personal discount — everything in one place.
+              </p>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                <Link to="/customer-search" className="ripple-wrap btn-gold text-base px-8 py-3" onClick={addRipple}>
+                  Search Customer
+                </Link>
+                <Link to="/customer-register" className="ripple-wrap btn-secondary border-white text-white hover:bg-white hover:text-navy-900 text-base px-8 py-3" onClick={addRipple}>
+                  Register New
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: feature cards */}
+            <div className={`flex-shrink-0 grid grid-cols-2 gap-3 w-full max-w-xs ${ctaInView ? 'animate-fade-in-up' : 'opacity-0'}`} style={{animationDelay:'0.15s'}}>
+              {[
+                { icon:'🔍', label:'Find by Name / Phone' },
+                { icon:'🔬', label:'View Prescriptions' },
+                { icon:'📋', label:'Visit History' },
+                { icon:'🏷️', label:'Personal Discount' },
+              ].map(({ icon, label }) => (
+                <div key={label} className="bg-navy-800/60 border border-navy-700 rounded-xl p-4 text-center">
+                  <div className="text-2xl mb-1.5">{icon}</div>
+                  <p className="text-xs text-navy-200 font-medium leading-snug">{label}</p>
+                </div>
+              ))}
+            </div>
+
           </div>
+        </div>
+      </section>
+
+      {/* Bottom call strip */}
+      <section className="bg-gold-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="font-medium text-sm">Need to reach us? Call during store hours (10 AM – 8 PM)</p>
+          <a href="tel:07011295507" className="inline-flex items-center gap-2 bg-white text-gold-700 font-semibold px-5 py-2.5 rounded-lg text-sm hover:bg-amber-50 transition-colors">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+            070112 95507
+          </a>
         </div>
       </section>
     </div>

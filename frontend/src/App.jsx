@@ -17,7 +17,10 @@ function PageTransition({ children }) {
 
 import Home from './pages/Home'
 import Login from './pages/Login'
-import Signup from './pages/Signup'
+
+import CustomerSearch from './pages/CustomerSearch'
+import CustomerRegister from './pages/CustomerRegister'
+import CustomerProfile from './pages/CustomerProfile'
 
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -56,15 +59,19 @@ export default function App() {
             {/* Public */}
             <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
             <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
-            <Route path="/signup" element={<PublicLayout><Signup /></PublicLayout>} />
             <Route path="/shop" element={<PublicLayout><Shop /></PublicLayout>} />
             <Route path="/book-appointment" element={<PublicLayout><BookAppointment /></PublicLayout>} />
 
-            {/* Customer (authenticated) */}
-            <Route path="/dashboard" element={<ProtectedRoute><PublicLayout><CustomerDashboard /></PublicLayout></ProtectedRoute>} />
-            <Route path="/cart" element={<ProtectedRoute><PublicLayout><Cart /></PublicLayout></ProtectedRoute>} />
-            <Route path="/my-orders" element={<ProtectedRoute><PublicLayout><OrderHistory /></PublicLayout></ProtectedRoute>} />
-            <Route path="/my-prescriptions" element={<ProtectedRoute><PublicLayout><MyPrescriptions /></PublicLayout></ProtectedRoute>} />
+            {/* Customer profile system (no auth required) */}
+            <Route path="/customer-search" element={<PublicLayout><CustomerSearch /></PublicLayout>} />
+            <Route path="/customer-register" element={<PublicLayout><CustomerRegister /></PublicLayout>} />
+            <Route path="/customer/:id" element={<PublicLayout><CustomerProfile /></PublicLayout>} />
+
+            {/* Legacy customer pages (auth optional — still accessible if logged in) */}
+            <Route path="/dashboard" element={<PublicLayout><CustomerDashboard /></PublicLayout>} />
+            <Route path="/cart" element={<PublicLayout><Cart /></PublicLayout>} />
+            <Route path="/my-orders" element={<PublicLayout><OrderHistory /></PublicLayout>} />
+            <Route path="/my-prescriptions" element={<PublicLayout><MyPrescriptions /></PublicLayout>} />
 
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminLayout /></ProtectedRoute>}>

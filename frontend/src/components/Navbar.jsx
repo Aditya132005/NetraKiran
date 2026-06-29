@@ -99,8 +99,13 @@ export default function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/login" className="text-sm text-navy-200 hover:text-white transition-colors px-3 py-1.5">Login</Link>
-                <Link to="/signup" className="btn-gold text-sm py-1.5 px-4">Sign Up</Link>
+                <Link to="/customer-search" className="btn-gold text-sm py-1.5 px-4 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                  </svg>
+                  Find Customer
+                </Link>
+                <Link to="/login" className="text-sm text-navy-300 hover:text-white transition-colors px-3 py-1.5">Staff Login</Link>
               </div>
             )}
 

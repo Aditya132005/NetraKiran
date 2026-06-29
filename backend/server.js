@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { initDB } = require('./db/database');
 
 const app = express();
@@ -19,15 +20,17 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.use('/api/auth',         require('./routes/auth'));
-app.use('/api/customers',    require('./routes/customers'));
-app.use('/api/prescriptions',require('./routes/prescriptions'));
-app.use('/api/products',     require('./routes/products'));
-app.use('/api/orders',       require('./routes/orders'));
-app.use('/api/appointments', require('./routes/appointments'));
-app.use('/api/dashboard',    require('./routes/dashboard'));
-app.use('/api/admins',       require('./routes/admins'));
+app.use('/api/auth',              require('./routes/auth'));
+app.use('/api/customers',         require('./routes/customers'));
+app.use('/api/customer-profiles', require('./routes/customerProfiles'));
+app.use('/api/prescriptions',     require('./routes/prescriptions'));
+app.use('/api/products',          require('./routes/products'));
+app.use('/api/orders',            require('./routes/orders'));
+app.use('/api/appointments',      require('./routes/appointments'));
+app.use('/api/dashboard',         require('./routes/dashboard'));
+app.use('/api/admins',            require('./routes/admins'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'Netra Kiran Optics' }));
 

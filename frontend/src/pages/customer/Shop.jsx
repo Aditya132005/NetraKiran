@@ -9,7 +9,13 @@ const CATEGORIES = [
   { value:'sunglasses', label:'Sunglasses', icon:'🕶️' },
   { value:'lens', label:'Lenses', icon:'🔬' },
 ]
-const BRANDS = ['All Brands','Ray-Ban','Oakley','Titan','Vogue','Fastrack','Essilor','Zeiss','Hoya','Transitions','John Jacobs','Lenskart','Vincent Chase','Police']
+
+const BRAND_CHIPS = [
+  'Ray-Ban', 'Oakley', 'Titan', 'Fastrack', 'Vincent Chase',
+  'Lenskart', 'Zeiss', 'Essilor', 'Nikon', 'Hoya', 'Ribbons',
+]
+
+const BRANDS = ['All Brands', ...BRAND_CHIPS, 'Vogue', 'Transitions', 'John Jacobs', 'Police']
 const GENDER_OPTS = ['All','unisex','male','female']
 
 export default function Shop() {
@@ -51,6 +57,30 @@ export default function Shop() {
       <div className="mb-6">
         <h1 className="font-heading text-3xl font-bold text-navy-900">Shop Eyewear</h1>
         <p className="text-gray-500 text-sm mt-1">Premium frames, sunglasses & lenses — all top brands</p>
+      </div>
+
+      {/* ── Browse by Brand chips ── */}
+      <div className="mb-7">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Browse by Brand</h2>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setBrand('All Brands')}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${brand === 'All Brands'
+              ? 'bg-navy-800 text-white border-navy-800 shadow-sm'
+              : 'bg-white text-gray-600 border-gray-200 hover:border-navy-300 hover:text-navy-700'}`}>
+            All Brands
+          </button>
+          {BRAND_CHIPS.map(b => (
+            <button
+              key={b}
+              onClick={() => setBrand(brand === b ? 'All Brands' : b)}
+              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${brand === b
+                ? 'bg-navy-800 text-white border-navy-800 shadow-sm'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-navy-300 hover:text-navy-700'}`}>
+              {b}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Category Tabs */}
@@ -111,6 +141,12 @@ export default function Shop() {
             <p className="text-sm text-gray-500">
               {loading ? 'Loading…' : `${filtered.length} products found`}
             </p>
+            {brand !== 'All Brands' && (
+              <button onClick={() => setBrand('All Brands')} className="text-xs text-navy-600 hover:text-navy-800 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                Clear brand filter
+              </button>
+            )}
           </div>
 
           {loading ? (
