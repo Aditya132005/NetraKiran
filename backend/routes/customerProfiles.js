@@ -77,20 +77,23 @@ router.post('/:id/prescriptions', async (req, res) => {
       right_sph, right_cyl, right_axis, right_add,
       left_sph, left_cyl, left_axis, left_add,
       pd_distance, pd_near, add_vision_right, add_vision_left,
-      vision_type, doctor_name, power_source, notes
+      vision_type, doctor_name, power_source, notes,
+      prescription_type, contact_lens_type, disposable_schedule, pack_quantity, num_lenses
     } = req.body;
     const { rows: [rx] } = await pool.query(
       `INSERT INTO prescriptions
         (customer_id, right_sph, right_cyl, right_axis, right_add,
          left_sph, left_cyl, left_axis, left_add,
          pd_distance, pd_near, add_vision_right, add_vision_left,
-         vision_type, doctor_name, power_source, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+         vision_type, doctor_name, power_source, notes,
+         prescription_type, contact_lens_type, disposable_schedule, pack_quantity, num_lenses)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING *`,
       [req.params.id,
        right_sph||null, right_cyl||null, right_axis||null, right_add||null,
        left_sph||null, left_cyl||null, left_axis||null, left_add||null,
        pd_distance||null, pd_near||null, add_vision_right||null, add_vision_left||null,
-       vision_type||'Single Vision', doctor_name||null, power_source||'Shop', notes||null]
+       vision_type||'Single Vision', doctor_name||null, power_source||'Shop', notes||null,
+       prescription_type||'lens', contact_lens_type||null, disposable_schedule||null, pack_quantity||null, num_lenses||null]
     );
     res.json(rx);
   } catch (err) {
@@ -152,19 +155,24 @@ router.put('/prescriptions/:prescriptionId', async (req, res) => {
       right_sph, right_cyl, right_axis, right_add,
       left_sph, left_cyl, left_axis, left_add,
       pd_distance, pd_near, add_vision_right, add_vision_left,
-      vision_type, doctor_name, power_source, notes
+      vision_type, doctor_name, power_source, notes,
+      prescription_type, contact_lens_type, disposable_schedule, pack_quantity, num_lenses
     } = req.body;
     const { rows: [rx] } = await pool.query(
       `UPDATE prescriptions
        SET right_sph=$1, right_cyl=$2, right_axis=$3, right_add=$4,
            left_sph=$5, left_cyl=$6, left_axis=$7, left_add=$8,
            pd_distance=$9, pd_near=$10, add_vision_right=$11, add_vision_left=$12,
-           vision_type=$13, doctor_name=$14, power_source=$15, notes=$16
-       WHERE id=$17 RETURNING *`,
+           vision_type=$13, doctor_name=$14, power_source=$15, notes=$16,
+           prescription_type=$17, contact_lens_type=$18, disposable_schedule=$19,
+           pack_quantity=$20, num_lenses=$21
+       WHERE id=$22 RETURNING *`,
       [right_sph||null, right_cyl||null, right_axis||null, right_add||null,
        left_sph||null, left_cyl||null, left_axis||null, left_add||null,
        pd_distance||null, pd_near||null, add_vision_right||null, add_vision_left||null,
        vision_type||'Single Vision', doctor_name||null, power_source||'Shop', notes||null,
+       prescription_type||'lens', contact_lens_type||null, disposable_schedule||null,
+       pack_quantity||null, num_lenses||null,
        req.params.prescriptionId]
     );
     if (!rx) return res.status(404).json({ error: 'Prescription not found' });

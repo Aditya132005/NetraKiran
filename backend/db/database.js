@@ -155,6 +155,12 @@ async function initDB() {
     ALTER TABLE prescriptions ALTER COLUMN user_id DROP NOT NULL
   `);
 
+  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS prescription_type VARCHAR(20) DEFAULT 'lens'`);
+  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS contact_lens_type VARCHAR(100)`);
+  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS disposable_schedule VARCHAR(50)`);
+  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS pack_quantity VARCHAR(20)`);
+  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS num_lenses INTEGER`);
+
   // Seed admin
   const { rows: adminRows } = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");
   if (!adminRows.length) {
