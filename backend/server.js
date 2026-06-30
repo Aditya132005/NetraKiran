@@ -31,6 +31,7 @@ app.use('/api/orders',            require('./routes/orders'));
 app.use('/api/appointments',      require('./routes/appointments'));
 app.use('/api/dashboard',         require('./routes/dashboard'));
 app.use('/api/admins',            require('./routes/admins'));
+app.use('/api/email',             require('./routes/email'));
 
 app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'Karan Optics' }));
 
