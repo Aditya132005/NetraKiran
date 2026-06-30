@@ -12,14 +12,14 @@ function buildEmailHtml(subject, message) {
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 24px;">
     <div style="background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
       <div style="background: #0f172a; padding: 24px; text-align: center;">
-        <h1 style="color: #fff; margin: 0; font-size: 22px; letter-spacing: 1px;">Karan Optics</h1>
+        <h1 style="color: #fff; margin: 0; font-size: 22px; letter-spacing: 1px;">NetraKiran</h1>
       </div>
       <div style="padding: 28px;">
         <h2 style="color: #0f172a; margin-top: 0; font-size: 18px;">${subject}</h2>
         <p style="color: #374151; font-size: 15px; line-height: 1.6;">${safeMessage}</p>
       </div>
       <div style="background: #f1f5f9; padding: 16px; text-align: center; color: #64748b; font-size: 12px;">
-        Karan Optics | NetraKiran
+        NetraKiran
       </div>
     </div>
   </div>`;

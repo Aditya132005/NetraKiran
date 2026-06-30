@@ -30,51 +30,93 @@ function formatPhoneForWhatsApp(phone) {
   return digits
 }
 
-function buildWhatsAppMessage(rx, customerName) {
+function buildWhatsAppMessage(rx, customerName, customerTitle) {
   const date = new Date(rx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const patient = `${customerTitle ? customerTitle + ' ' : ''}${customerName}`
 
   if (rx.prescription_type === 'contact') {
-    return `Hello ${customerName},
-
-Here are your contact lens prescription details from Karan Optics:
-
-🔵 Contact Lens Type: ${rx.contact_lens_type || '—'}
-📅 Disposable Schedule: ${rx.disposable_schedule || '—'}
-📦 Pack Quantity: ${rx.pack_quantity || '—'}
-🔢 Number of Lenses: ${rx.num_lenses || '—'}
-Doctor: ${rx.doctor_name || '—'}
+    return `🔵 *NetraKiran — Contact Lens Prescription*
+━━━━━━━━━━━━━━━━━━━━
+Patient: ${patient}
 Date: ${date}
 
-For any queries, contact Karan Optics.`
+Lens Type: ${rx.contact_lens_type || '—'}
+Schedule: ${rx.disposable_schedule || '—'}
+Pack: ${rx.pack_quantity || '—'}
+No. of Lenses: ${rx.num_lenses || '—'}
+👨‍⚕️ Doctor: ${rx.doctor_name || '—'}
+━━━━━━━━━━━━━━━━━━━━
+For queries, contact NetraKiran.`
   }
 
-  return `Hello ${customerName},
-
-Here are your spectacle lens prescription details from Karan Optics:
-
-👁️ Right Eye (OD):
-• SPH: ${rx.right_sph || '—'}
-• CYL: ${rx.right_cyl || '—'}
-• AXIS: ${rx.right_axis || '—'}
-• ADD: ${rx.right_add || '—'}
-
-👁️ Left Eye (OS):
-• SPH: ${rx.left_sph || '—'}
-• CYL: ${rx.left_cyl || '—'}
-• AXIS: ${rx.left_axis || '—'}
-• ADD: ${rx.left_add || '—'}
-
-📏 PD Distance: ${rx.pd_distance || '—'}
-Vision Type: ${rx.vision_type || '—'}
-Doctor: ${rx.doctor_name || '—'}
+  return `👁️ *NetraKiran — Prescription Details*
+━━━━━━━━━━━━━━━━━━━━
+Patient: ${patient}
 Date: ${date}
 
-For any queries, contact Karan Optics.`
+*RIGHT EYE (OD)*
+• SPH: ${rx.right_sph || '—'}   CYL: ${rx.right_cyl || '—'}
+• AXIS: ${rx.right_axis || '—'}   ADD: ${rx.right_add || '—'}
+
+*LEFT EYE (OS)*
+• SPH: ${rx.left_sph || '—'}   CYL: ${rx.left_cyl || '—'}
+• AXIS: ${rx.left_axis || '—'}   ADD: ${rx.left_add || '—'}
+
+📏 PD Distance: ${rx.pd_distance || '—'}
+🔬 Vision Type: ${rx.vision_type || '—'}
+👨‍⚕️ Doctor: ${rx.doctor_name || '—'}
+━━━━━━━━━━━━━━━━━━━━
+For queries, contact NetraKiran.`
 }
 
 function sendRxOnWhatsApp(rx, customer) {
   const phone = formatPhoneForWhatsApp(customer?.phone)
-  const message = buildWhatsAppMessage(rx, customer?.full_name || 'Customer')
+  const message = buildWhatsAppMessage(rx, customer?.full_name || 'Customer', customer?.title)
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+  window.open(url, '_blank')
+}
+
+function calcOriginalAmount(totalAmount, discountGiven) {
+  const total = Number(totalAmount) || 0
+  const discount = Number(discountGiven) || 0
+  if (!discount) return total
+  return Math.round(total / (1 - discount / 100))
+}
+
+function buildBillWhatsAppMessage(visit, customerName, customerTitle) {
+  const date = new Date(visit.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const patient = `${customerTitle ? customerTitle + ' ' : ''}${customerName}`
+  const total = Number(visit.total_amount) || 0
+  const discount = Number(visit.discount_given) || 0
+
+  let pricingBlock
+  if (discount > 0) {
+    const original = calcOriginalAmount(total, discount)
+    const saved = original - total
+    pricingBlock = `💰 *Pricing*
+Original Amount: ₹${original.toLocaleString('en-IN')}
+Discount: ${discount}% (−₹${saved.toLocaleString('en-IN')})
+*Final Amount: ₹${total.toLocaleString('en-IN')}*`
+  } else {
+    pricingBlock = `*Amount Paid: ₹${total.toLocaleString('en-IN')}*`
+  }
+
+  return `🧾 *NetraKiran — Purchase Receipt*
+━━━━━━━━━━━━━━━━━━━━
+Customer: ${patient}
+Date: ${date}
+
+🛍️ Items: ${visit.items_purchased || '—'}
+
+${pricingBlock}
+
+Thank you for visiting NetraKiran! 🙏
+━━━━━━━━━━━━━━━━━━━━`
+}
+
+function sendBillOnWhatsApp(visit, customer) {
+  const phone = formatPhoneForWhatsApp(customer?.phone)
+  const message = buildBillWhatsAppMessage(visit, customer?.full_name || 'Customer', customer?.title)
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
   window.open(url, '_blank')
 }
@@ -650,7 +692,7 @@ export default function AdminCustomerDetail() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b">
-                  {['Date & Time','Items Purchased','Discount %','Total Amount','Notes','Actions'].map(h => (
+                  {['Date & Time','Items Purchased','Amount','Notes','Actions'].map(h => (
                     <th key={h} className="text-left p-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -659,7 +701,7 @@ export default function AdminCustomerDetail() {
                 {visits.map(v => (
                   editingVisitId === v.id ? (
                     <tr key={v.id} className="border-b bg-blue-50">
-                      <td colSpan={6} className="p-3">
+                      <td colSpan={5} className="p-3">
                         <form onSubmit={saveEditVisit} className="space-y-2">
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             <div>
@@ -697,9 +739,18 @@ export default function AdminCustomerDetail() {
                         <p className="text-xs text-gray-400">{new Date(v.visit_date).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })}</p>
                       </td>
                       <td className="p-3 text-gray-800 max-w-xs">{v.items_purchased || '—'}</td>
-                      <td className="p-3 text-gray-600">{v.discount_given != null && v.discount_given !== '' ? `${v.discount_given}%` : '—'}</td>
-                      <td className="p-3 font-semibold text-navy-800 whitespace-nowrap">
-                        {v.total_amount ? `₹${Number(v.total_amount).toLocaleString()}` : '—'}
+                      <td className="p-3 whitespace-nowrap">
+                        {v.total_amount ? (
+                          v.discount_given ? (
+                            <div>
+                              <p className="text-xs text-gray-400 line-through">₹{calcOriginalAmount(v.total_amount, v.discount_given).toLocaleString('en-IN')}</p>
+                              <p className="text-xs text-amber-600">−{v.discount_given}% (−₹{(calcOriginalAmount(v.total_amount, v.discount_given) - Number(v.total_amount)).toLocaleString('en-IN')})</p>
+                              <p className="font-semibold text-green-600">₹{Number(v.total_amount).toLocaleString('en-IN')}</p>
+                            </div>
+                          ) : (
+                            <p className="font-semibold text-green-600">₹{Number(v.total_amount).toLocaleString('en-IN')}</p>
+                          )
+                        ) : '—'}
                       </td>
                       <td className="p-3 text-gray-500 text-xs max-w-xs">{v.notes || '—'}</td>
                       <td className="p-3 whitespace-nowrap">
@@ -717,6 +768,14 @@ export default function AdminCustomerDetail() {
                             className="text-xs px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                           >
                             Delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => sendBillOnWhatsApp(v, customer)}
+                            className="text-xs px-2 py-1 text-white rounded-lg transition-colors flex items-center gap-1"
+                            style={{ backgroundColor: '#25D366' }}
+                          >
+                            💬 Bill
                           </button>
                         </div>
                       </td>
