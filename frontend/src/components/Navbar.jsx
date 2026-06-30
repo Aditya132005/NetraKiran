@@ -30,7 +30,7 @@ export default function Navbar() {
               NK
             </div>
             <div>
-              <div className="font-heading font-bold text-base leading-tight">Netra Kiran</div>
+              <div className="font-heading font-bold text-base leading-tight">NetraKiran</div>
               <div className="text-[10px] text-navy-200 leading-tight tracking-widest uppercase">Optics</div>
             </div>
           </Link>

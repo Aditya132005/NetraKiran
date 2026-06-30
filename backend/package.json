@@ -1,7 +1,7 @@
 {
   "name": "netra-kiran-backend",
   "version": "1.0.0",
-  "description": "Netra Kiran Optics - Backend API",
+  "description": "Karan Optics - Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

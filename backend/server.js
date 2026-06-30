@@ -32,8 +32,8 @@ app.use('/api/appointments',      require('./routes/appointments'));
 app.use('/api/dashboard',         require('./routes/dashboard'));
 app.use('/api/admins',            require('./routes/admins'));
 
-app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'Netra Kiran Optics' }));
+app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'Karan Optics' }));
 
 initDB()
-  .then(() => app.listen(PORT, () => console.log(`\n✨ Netra Kiran Optics API → http://localhost:${PORT}\n`)))
+  .then(() => app.listen(PORT, () => console.log(`\n✨ Karan Optics API → http://localhost:${PORT}\n`)))
   .catch(err => { console.error('DB init failed:', err.message); process.exit(1); });

@@ -29,7 +29,7 @@ export default function CustomerDashboard() {
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="font-heading text-3xl font-bold text-navy-900">Hello, {user.title} {user.name?.split(' ')[0]}! 👋</h1>
-        <p className="text-gray-500 mt-1">Welcome to your Netra Kiran dashboard</p>
+        <p className="text-gray-500 mt-1">Welcome to your NetraKiran dashboard</p>
       </div>
 
       {loading ? <p className="text-gray-400 text-center py-12">Loading your data…</p> : (

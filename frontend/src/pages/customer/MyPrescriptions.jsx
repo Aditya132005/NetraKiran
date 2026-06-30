@@ -18,7 +18,7 @@ export default function MyPrescriptions() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-heading text-3xl font-bold text-navy-900">My Prescriptions</h1>
-          <p className="text-gray-500 text-sm mt-1">Your eye power records from Netra Kiran Optics</p>
+          <p className="text-gray-500 text-sm mt-1">Your eye power records from Karan Optics</p>
         </div>
         <Link to="/book-appointment" className="btn-gold text-sm py-2">Book Eye Check</Link>
       </div>
@@ -29,7 +29,7 @@ export default function MyPrescriptions() {
         <div className="text-center py-16">
           <div className="text-6xl mb-4">👁</div>
           <h3 className="font-semibold text-gray-700 mb-2">No prescriptions on file</h3>
-          <p className="text-gray-400 text-sm mb-6">Visit Netra Kiran Optics for a comprehensive eye check-up</p>
+          <p className="text-gray-400 text-sm mb-6">Visit Karan Optics for a comprehensive eye check-up</p>
           <Link to="/book-appointment" className="btn-primary">Book Appointment</Link>
         </div>
       ) : (

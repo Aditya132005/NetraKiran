@@ -78,8 +78,8 @@ export default function Home() {
   const customers = useCounter(10000, statsInView)
   const brands    = useCounter(50,    statsInView)
 
-  const typed = useTypewriter('Netra Kiran', 70, 350)
-  const showOptics = typed.length >= 'Netra Kiran'.length
+  const typed = useTypewriter('Karan', 70, 350)
+  const showOptics = typed.length >= 'Karan'.length
 
   return (
     <div>
@@ -238,7 +238,7 @@ export default function Home() {
       {/* ── Why Choose Us (scroll reveal + glow) ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-10">
-          <h2 className="font-heading text-3xl font-bold text-navy-900 mb-2">Why Netra Kiran?</h2>
+          <h2 className="font-heading text-3xl font-bold text-navy-900 mb-2">Why NetraKiran?</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center" ref={whyRef}>
           {[

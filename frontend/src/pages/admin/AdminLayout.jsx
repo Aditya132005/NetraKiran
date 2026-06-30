@@ -27,7 +27,7 @@ export default function AdminLayout() {
         <div className="flex items-center gap-3 px-5 py-5 border-b border-navy-700">
           <div className="w-10 h-10 bg-gold-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">NK</div>
           <div>
-            <div className="font-heading font-bold text-sm leading-tight">Netra Kiran</div>
+            <div className="font-heading font-bold text-sm leading-tight">NetraKiran</div>
             <div className="text-[10px] text-navy-300 tracking-widest uppercase">Admin Panel</div>
           </div>
           <button className="ml-auto lg:hidden text-navy-400 hover:text-white" onClick={() => setSideOpen(false)}>
