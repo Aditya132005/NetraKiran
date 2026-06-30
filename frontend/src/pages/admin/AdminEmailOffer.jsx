@@ -174,14 +174,14 @@ export default function AdminEmailOffer() {
             <div className="p-5 bg-gray-50">
               <div className="bg-white rounded-xl overflow-hidden shadow-sm">
                 <div className="bg-navy-900 px-6 py-5 text-center">
-                  <h1 className="text-white font-heading font-bold text-lg tracking-wide m-0">Karan Optics</h1>
+                  <h1 className="text-white font-heading font-bold text-lg tracking-wide m-0">NetraKiran</h1>
                 </div>
                 <div className="px-6 py-6">
                   <h2 className="text-navy-900 font-heading font-semibold text-base mb-2">{subject}</h2>
                   <p className="text-gray-600 text-sm whitespace-pre-line">{message}</p>
                 </div>
                 <div className="bg-gray-100 px-4 py-3 text-center text-xs text-gray-500">
-                  Karan Optics | NetraKiran
+                  NetraKiran
                 </div>
               </div>
             </div>

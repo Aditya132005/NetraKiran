@@ -1,4 +1,4 @@
-# Karan Optics — How to Run
+# NetraKiran — How to Run
 
 ## Quick Start (Two Terminals)
 

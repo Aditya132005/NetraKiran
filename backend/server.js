@@ -33,8 +33,8 @@ app.use('/api/dashboard',         require('./routes/dashboard'));
 app.use('/api/admins',            require('./routes/admins'));
 app.use('/api/email',             require('./routes/email'));
 
-app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'Karan Optics' }));
+app.get('/api/health', (_, res) => res.json({ status: 'ok', shop: 'NetraKiran' }));
 
 initDB()
-  .then(() => app.listen(PORT, () => console.log(`\n✨ Karan Optics API → http://localhost:${PORT}\n`)))
+  .then(() => app.listen(PORT, () => console.log(`\n✨ NetraKiran API → http://localhost:${PORT}\n`)))
   .catch(err => { console.error('DB init failed:', err.message); process.exit(1); });
