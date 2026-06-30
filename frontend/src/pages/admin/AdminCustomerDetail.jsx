@@ -24,6 +24,61 @@ function toDatetimeLocal(val) {
   return d.toISOString().slice(0, 16)
 }
 
+function formatPhoneForWhatsApp(phone) {
+  let digits = (phone || '').replace(/[\s\-+]/g, '')
+  if (!digits.startsWith('91')) digits = `91${digits}`
+  return digits
+}
+
+function buildWhatsAppMessage(rx, customerName) {
+  const date = new Date(rx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  if (rx.prescription_type === 'contact') {
+    return `Hello ${customerName},
+
+Here are your contact lens prescription details from Karan Optics:
+
+🔵 Contact Lens Type: ${rx.contact_lens_type || '—'}
+📅 Disposable Schedule: ${rx.disposable_schedule || '—'}
+📦 Pack Quantity: ${rx.pack_quantity || '—'}
+🔢 Number of Lenses: ${rx.num_lenses || '—'}
+Doctor: ${rx.doctor_name || '—'}
+Date: ${date}
+
+For any queries, contact Karan Optics.`
+  }
+
+  return `Hello ${customerName},
+
+Here are your spectacle lens prescription details from Karan Optics:
+
+👁️ Right Eye (OD):
+• SPH: ${rx.right_sph || '—'}
+• CYL: ${rx.right_cyl || '—'}
+• AXIS: ${rx.right_axis || '—'}
+• ADD: ${rx.right_add || '—'}
+
+👁️ Left Eye (OS):
+• SPH: ${rx.left_sph || '—'}
+• CYL: ${rx.left_cyl || '—'}
+• AXIS: ${rx.left_axis || '—'}
+• ADD: ${rx.left_add || '—'}
+
+📏 PD Distance: ${rx.pd_distance || '—'}
+Vision Type: ${rx.vision_type || '—'}
+Doctor: ${rx.doctor_name || '—'}
+Date: ${date}
+
+For any queries, contact Karan Optics.`
+}
+
+function sendRxOnWhatsApp(rx, customer) {
+  const phone = formatPhoneForWhatsApp(customer?.phone)
+  const message = buildWhatsAppMessage(rx, customer?.full_name || 'Customer')
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+  window.open(url, '_blank')
+}
+
 export default function AdminCustomerDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -531,7 +586,7 @@ export default function AdminCustomerDetail() {
             {currentRx && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Current Prescription</p>
-                <RxCard rx={currentRx} defaultOpen onEdit={openEditRx} onDelete={deleteRx} />
+                <RxCard rx={currentRx} customer={customer} defaultOpen onEdit={openEditRx} onDelete={deleteRx} />
               </div>
             )}
             {previousRx.length > 0 && (
@@ -541,7 +596,7 @@ export default function AdminCustomerDetail() {
                 </p>
                 <div className="space-y-2">
                   {previousRx.map(rx => (
-                    <RxCard key={rx.id} rx={rx} onEdit={openEditRx} onDelete={deleteRx} />
+                    <RxCard key={rx.id} rx={rx} customer={customer} onEdit={openEditRx} onDelete={deleteRx} />
                   ))}
                 </div>
               </div>
@@ -677,7 +732,7 @@ export default function AdminCustomerDetail() {
   )
 }
 
-function RxCard({ rx, defaultOpen = false, onEdit, onDelete }) {
+function RxCard({ rx, customer, defaultOpen = false, onEdit, onDelete }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="border rounded-xl overflow-hidden">
@@ -771,6 +826,14 @@ function RxCard({ rx, defaultOpen = false, onEdit, onDelete }) {
               className="text-xs px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
             >
               Delete
+            </button>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); sendRxOnWhatsApp(rx, customer) }}
+              className="text-xs px-3 py-1.5 text-white rounded-lg transition-colors flex items-center gap-1.5"
+              style={{ backgroundColor: '#25D366' }}
+            >
+              💬 Send on WhatsApp
             </button>
           </div>
         </div>
