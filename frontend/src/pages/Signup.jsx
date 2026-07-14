@@ -32,7 +32,15 @@ export default function Signup() {
       <div className="w-full max-w-lg">
         <div className="card p-8">
           <div className="text-center mb-8">
-            <div className="w-14 h-14 bg-navy-800 rounded-2xl flex items-center justify-center text-white font-heading font-bold text-xl mx-auto mb-4">NK</div>
+            <div className="w-14 h-14 bg-navy-800 rounded-2xl flex items-center justify-center text-white mx-auto mb-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+                <circle cx="6.5" cy="13" r="3.5"/>
+                <circle cx="17.5" cy="13" r="3.5"/>
+                <path d="M10 13h4"/>
+                <path d="M3.5 13 2 8.5C1.7 7.6 2.3 6.5 3.5 6.5"/>
+                <path d="M20.5 13 22 8.5c.3-.9-.3-2-1.5-2"/>
+              </svg>
+            </div>
             <h1 className="font-heading text-2xl font-bold text-navy-900">Create Account</h1>
             <p className="text-gray-500 text-sm mt-1">Join NetraKiran family</p>
           </div>

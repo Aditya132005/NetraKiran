@@ -26,7 +26,15 @@ export default function AdminLayout() {
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy-900 text-white flex flex-col transition-transform duration-200 ${sideOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0`}>
         {/* Brand */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-navy-700">
-          <div className="w-10 h-10 bg-gold-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">NK</div>
+          <div className="w-10 h-10 bg-gold-600 rounded-xl flex items-center justify-center text-white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+              <circle cx="6.5" cy="13" r="3.5"/>
+              <circle cx="17.5" cy="13" r="3.5"/>
+              <path d="M10 13h4"/>
+              <path d="M3.5 13 2 8.5C1.7 7.6 2.3 6.5 3.5 6.5"/>
+              <path d="M20.5 13 22 8.5c.3-.9-.3-2-1.5-2"/>
+            </svg>
+          </div>
           <div>
             <div className="font-heading font-bold text-sm leading-tight">NetraKiran</div>
             <div className="text-[10px] text-navy-300 tracking-widest uppercase">Admin Panel</div>

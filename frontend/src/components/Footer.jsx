@@ -8,7 +8,15 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 bg-gold-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">NK</div>
+              <div className="w-9 h-9 bg-gold-600 rounded-lg flex items-center justify-center text-white">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <circle cx="6.5" cy="13" r="3.5"/>
+                  <circle cx="17.5" cy="13" r="3.5"/>
+                  <path d="M10 13h4"/>
+                  <path d="M3.5 13 2 8.5C1.7 7.6 2.3 6.5 3.5 6.5"/>
+                  <path d="M20.5 13 22 8.5c.3-.9-.3-2-1.5-2"/>
+                </svg>
+              </div>
               <div>
                 <div className="font-heading font-bold text-white text-base leading-tight">NetraKiran</div>
                 <div className="text-[10px] text-navy-300 tracking-widest uppercase">Optics</div>
