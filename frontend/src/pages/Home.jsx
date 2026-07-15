@@ -78,8 +78,8 @@ export default function Home() {
   const customers = useCounter(10000, statsInView)
   const brands    = useCounter(50,    statsInView)
 
-  const typed = useTypewriter('Karan', 70, 350)
-  const showOptics = typed.length >= 'Karan'.length
+  const typed = useTypewriter('NetraKiran', 70, 350)
+  const showOptics = typed.length >= 'NetraKiran'.length
 
   return (
     <div>
