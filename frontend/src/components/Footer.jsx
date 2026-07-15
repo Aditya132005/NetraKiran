@@ -25,7 +25,7 @@ export default function Footer() {
             <p className="text-sm leading-relaxed text-navy-300 mb-4">Your vision is our passion. Premium eyewear and expert optical services in Indirapuram.</p>
             <div className="flex items-center gap-1.5 text-sm">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-navy-300">Open Today 10 AM – 8 PM</span>
+              <span className="text-navy-300">Open Today 10 AM – 10 PM</span>
             </div>
           </div>
 
@@ -63,7 +63,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-gold-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                <a href="mailto:admin@netrakiran.com" className="hover:text-gold-400 transition-colors">admin@netrakiran.com</a>
+                <a href="mailto:netrakiran20@gmail.com" className="hover:text-gold-400 transition-colors">netrakiran20@gmail.com</a>
               </li>
               <li>
                 <a href="https://maps.app.goo.gl/pSrvNAzrKFApMMeN6" target="_blank" rel="noopener noreferrer"

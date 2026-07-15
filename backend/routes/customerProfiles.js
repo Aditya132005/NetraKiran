@@ -101,35 +101,93 @@ router.post('/:id/prescriptions', async (req, res) => {
   }
 });
 
-// POST /:id/visits — record a new visit
+function calcChallanTotals({ frame_mrp, frame_discount, lens_mrp, lens_discount, advance }) {
+  const total = (Number(frame_mrp) || 0) + (Number(lens_mrp) || 0)
+    - (Number(frame_discount) || 0) - (Number(lens_discount) || 0);
+  const balance = total - (Number(advance) || 0);
+  return { total_amount: total, balance };
+}
+
+// Replace the DV/NV prescription rows linked to a visit
+async function saveVisitPrescriptions(customerId, visitId, visionType, dv, nv) {
+  await pool.query('DELETE FROM prescriptions WHERE visit_id=$1', [visitId]);
+  for (const [rowLabel, row] of [['DV', dv], ['NV', nv]]) {
+    if (!row) continue;
+    const hasData = ['right_sph','right_cyl','right_axis','left_sph','left_cyl','left_axis']
+      .some(f => row[f] !== undefined && row[f] !== null && row[f] !== '');
+    if (!hasData) continue;
+    await pool.query(
+      `INSERT INTO prescriptions
+        (customer_id, visit_id, vision_row, right_sph, right_cyl, right_axis,
+         left_sph, left_cyl, left_axis, vision_type)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [customerId, visitId, rowLabel,
+       row.right_sph || null, row.right_cyl || null, row.right_axis || null,
+       row.left_sph || null, row.left_cyl || null, row.left_axis || null,
+       visionType || 'Single Vision']
+    );
+  }
+}
+
+// POST /:id/visits — record a new challan (visit + prescription + frame/lens/payment)
 router.post('/:id/visits', async (req, res) => {
   try {
-    const { notes, discount_given, total_amount, items_purchased, visit_date } = req.body;
+    const {
+      visit_date, notes, vision_type, dv, nv,
+      frame_name, frame_mrp, frame_discount,
+      lens_name, lens_mrp, lens_discount, advance
+    } = req.body;
+    const { total_amount, balance } = calcChallanTotals(req.body);
+
     const { rows: [visit] } = await pool.query(
-      `INSERT INTO customer_visits (customer_id, visit_date, notes, discount_given, total_amount, items_purchased)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [req.params.id, visit_date || new Date(), notes || null, discount_given || null,
-       total_amount || null, items_purchased || null]
+      `INSERT INTO customer_visits
+        (customer_id, visit_date, notes, total_amount,
+         frame_name, frame_mrp, frame_discount, lens_name, lens_mrp, lens_discount, advance, balance)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.params.id, visit_date || new Date(), notes || null, total_amount,
+       frame_name || null, frame_mrp || null, frame_discount || null,
+       lens_name || null, lens_mrp || null, lens_discount || null,
+       advance || null, balance]
     );
-    res.json(visit);
+
+    await saveVisitPrescriptions(req.params.id, visit.id, vision_type, dv, nv);
+    const { rows: prescriptions } = await pool.query(
+      'SELECT * FROM prescriptions WHERE visit_id=$1 ORDER BY vision_row', [visit.id]
+    );
+    res.json({ ...visit, prescriptions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// PUT /visits/:visitId — update a visit record
+// PUT /visits/:visitId — update a challan (visit + prescription + frame/lens/payment)
 router.put('/visits/:visitId', async (req, res) => {
   try {
-    const { visit_date, notes, discount_given, total_amount, items_purchased } = req.body;
+    const {
+      visit_date, notes, vision_type, dv, nv,
+      frame_name, frame_mrp, frame_discount,
+      lens_name, lens_mrp, lens_discount, advance
+    } = req.body;
+    const { total_amount, balance } = calcChallanTotals(req.body);
+
     const { rows: [visit] } = await pool.query(
       `UPDATE customer_visits
-       SET visit_date=$1, notes=$2, discount_given=$3, total_amount=$4, items_purchased=$5
-       WHERE id=$6 RETURNING *`,
-      [visit_date || new Date(), notes||null, discount_given||null,
-       total_amount||null, items_purchased||null, req.params.visitId]
+       SET visit_date=$1, notes=$2, total_amount=$3,
+           frame_name=$4, frame_mrp=$5, frame_discount=$6,
+           lens_name=$7, lens_mrp=$8, lens_discount=$9, advance=$10, balance=$11
+       WHERE id=$12 RETURNING *`,
+      [visit_date || new Date(), notes || null, total_amount,
+       frame_name || null, frame_mrp || null, frame_discount || null,
+       lens_name || null, lens_mrp || null, lens_discount || null,
+       advance || null, balance, req.params.visitId]
     );
     if (!visit) return res.status(404).json({ error: 'Visit not found' });
-    res.json(visit);
+
+    await saveVisitPrescriptions(visit.customer_id, visit.id, vision_type, dv, nv);
+    const { rows: prescriptions } = await pool.query(
+      'SELECT * FROM prescriptions WHERE visit_id=$1 ORDER BY vision_row', [visit.id]
+    );
+    res.json({ ...visit, prescriptions });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
