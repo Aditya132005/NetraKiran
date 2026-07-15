@@ -116,6 +116,11 @@ function rupees(n) {
   return `₹${(Number(n) || 0).toLocaleString('en-IN')}`
 }
 
+function paymentModeIcon(mode) {
+  const icons = { Cash: '💵', Card: '💳', UPI: '📱' }
+  return icons[mode] || '🔹'
+}
+
 function buildBillWhatsAppMessage(visit, customerName, customerTitle) {
   const date = new Date(visit.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
   const patient = `${customerTitle ? customerTitle + ' ' : ''}${customerName}`
@@ -933,8 +938,16 @@ function VisitCard({ visit, customer, onEdit, onDelete }) {
           </div>
           <div className="bg-gray-50 rounded-lg p-2 text-center">
             <div className="text-gray-400">Advance</div>
-            <div className="font-medium">{rupees(advance)}</div>
-            {visit.advance_payment_mode && <div className="text-gray-400">{visit.advance_payment_mode}</div>}
+            {visit.advance_payment_mode ? (
+              <div className="relative inline-block group/adv">
+                <div className="font-medium cursor-default">{rupees(advance)}</div>
+                <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 opacity-0 group-hover/adv:opacity-100 transition-opacity whitespace-nowrap bg-gray-800 text-white text-[10px] px-2 py-1 rounded shadow-lg z-10">
+                  {paymentModeIcon(visit.advance_payment_mode)} {visit.advance_payment_mode}
+                </div>
+              </div>
+            ) : (
+              <div className="font-medium">{rupees(advance)}</div>
+            )}
           </div>
           <div className="bg-green-50 rounded-lg p-2 text-center">
             <div className="text-gray-400">Balance</div>
@@ -1000,17 +1013,24 @@ function RxCard({ rx, customer, defaultOpen = false, onEdit, onDelete }) {
                 <table className="text-xs w-full border-collapse">
                   <thead>
                     <tr className="bg-navy-800 text-white text-center">
-                      <th className="p-2">Eye</th><th className="p-2">SPH</th><th className="p-2">CYL</th><th className="p-2">AXIS</th><th className="p-2">ADD</th>
+                      <th className="p-2"></th><th className="p-2">SPH.</th><th className="p-2">CYL.</th><th className="p-2">AXIS</th><th className="p-2">VISION</th><th className="p-2">ADD.</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="text-center border-b">
-                      <td className="p-2 font-medium bg-gray-50">OD (Right)</td>
-                      {[rx.right_sph, rx.right_cyl, rx.right_axis, rx.right_add].map((v, i) => <td key={i} className="p-2">{v || '—'}</td>)}
+                      <td className="p-2 font-medium bg-gray-50">R</td>
+                      <td className="p-2">{rx.right_sph || '—'}</td>
+                      <td className="p-2">{rx.right_cyl || '—'}</td>
+                      <td className="p-2">{rx.right_axis || '—'}</td>
+                      <td className="p-2" rowSpan={2}>{rx.vision_type || '—'}</td>
+                      <td className="p-2">{rx.right_add || '—'}</td>
                     </tr>
                     <tr className="text-center">
-                      <td className="p-2 font-medium bg-gray-50">OS (Left)</td>
-                      {[rx.left_sph, rx.left_cyl, rx.left_axis, rx.left_add].map((v, i) => <td key={i} className="p-2">{v || '—'}</td>)}
+                      <td className="p-2 font-medium bg-gray-50">L</td>
+                      <td className="p-2">{rx.left_sph || '—'}</td>
+                      <td className="p-2">{rx.left_cyl || '—'}</td>
+                      <td className="p-2">{rx.left_axis || '—'}</td>
+                      <td className="p-2">{rx.left_add || '—'}</td>
                     </tr>
                   </tbody>
                 </table>
