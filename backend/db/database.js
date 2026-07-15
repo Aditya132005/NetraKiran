@@ -161,18 +161,16 @@ async function initDB() {
   await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS pack_quantity VARCHAR(20)`);
   await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS num_lenses INTEGER`);
 
-  // Challan History: link prescriptions to a specific visit + DV/NV row, and
-  // give visits a frame/lens/advance/balance breakdown
+  // Visit purchase breakdown: frame/lens with % discount, advance + payment modes
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS frame_name TEXT`);
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS frame_mrp NUMERIC(10,2)`);
-  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS frame_discount NUMERIC(10,2)`);
+  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS frame_discount_pct NUMERIC(5,2)`);
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS lens_name TEXT`);
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS lens_mrp NUMERIC(10,2)`);
-  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS lens_discount NUMERIC(10,2)`);
+  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS lens_discount_pct NUMERIC(5,2)`);
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS advance NUMERIC(10,2)`);
-  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS balance NUMERIC(10,2)`);
-  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS visit_id INTEGER REFERENCES customer_visits(id) ON DELETE CASCADE`);
-  await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS vision_row VARCHAR(10)`);
+  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS advance_payment_mode VARCHAR(20)`);
+  await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS balance_payment_mode VARCHAR(20)`);
 
   // Seed admin
   const { rows: adminRows } = await pool.query("SELECT id FROM users WHERE role='admin' LIMIT 1");

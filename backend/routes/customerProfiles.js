@@ -101,93 +101,67 @@ router.post('/:id/prescriptions', async (req, res) => {
   }
 });
 
-function calcChallanTotals({ frame_mrp, frame_discount, lens_mrp, lens_discount, advance }) {
-  const total = (Number(frame_mrp) || 0) + (Number(lens_mrp) || 0)
-    - (Number(frame_discount) || 0) - (Number(lens_discount) || 0);
-  const balance = total - (Number(advance) || 0);
-  return { total_amount: total, balance };
+// Frame/lens discount is a %, so the stored total is the post-discount amount
+function calcVisitTotal({ frame_mrp, frame_discount_pct, lens_mrp, lens_discount_pct }) {
+  const frameAmt = (Number(frame_mrp) || 0) * (1 - (Number(frame_discount_pct) || 0) / 100);
+  const lensAmt = (Number(lens_mrp) || 0) * (1 - (Number(lens_discount_pct) || 0) / 100);
+  return Math.round((frameAmt + lensAmt) * 100) / 100;
 }
 
-// Replace the DV/NV prescription rows linked to a visit
-async function saveVisitPrescriptions(customerId, visitId, visionType, dv, nv) {
-  await pool.query('DELETE FROM prescriptions WHERE visit_id=$1', [visitId]);
-  for (const [rowLabel, row] of [['DV', dv], ['NV', nv]]) {
-    if (!row) continue;
-    const hasData = ['right_sph','right_cyl','right_axis','left_sph','left_cyl','left_axis']
-      .some(f => row[f] !== undefined && row[f] !== null && row[f] !== '');
-    if (!hasData) continue;
-    await pool.query(
-      `INSERT INTO prescriptions
-        (customer_id, visit_id, vision_row, right_sph, right_cyl, right_axis,
-         left_sph, left_cyl, left_axis, vision_type)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [customerId, visitId, rowLabel,
-       row.right_sph || null, row.right_cyl || null, row.right_axis || null,
-       row.left_sph || null, row.left_cyl || null, row.left_axis || null,
-       visionType || 'Single Vision']
-    );
-  }
-}
-
-// POST /:id/visits — record a new challan (visit + prescription + frame/lens/payment)
+// POST /:id/visits — record a new visit (frame/lens purchase + payment)
 router.post('/:id/visits', async (req, res) => {
   try {
     const {
-      visit_date, notes, vision_type, dv, nv,
-      frame_name, frame_mrp, frame_discount,
-      lens_name, lens_mrp, lens_discount, advance
+      visit_date, notes,
+      frame_name, frame_mrp, frame_discount_pct,
+      lens_name, lens_mrp, lens_discount_pct,
+      advance, advance_payment_mode, balance_payment_mode
     } = req.body;
-    const { total_amount, balance } = calcChallanTotals(req.body);
+    const total_amount = calcVisitTotal(req.body);
 
     const { rows: [visit] } = await pool.query(
       `INSERT INTO customer_visits
         (customer_id, visit_date, notes, total_amount,
-         frame_name, frame_mrp, frame_discount, lens_name, lens_mrp, lens_discount, advance, balance)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+         frame_name, frame_mrp, frame_discount_pct, lens_name, lens_mrp, lens_discount_pct,
+         advance, advance_payment_mode, balance_payment_mode)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [req.params.id, visit_date || new Date(), notes || null, total_amount,
-       frame_name || null, frame_mrp || null, frame_discount || null,
-       lens_name || null, lens_mrp || null, lens_discount || null,
-       advance || null, balance]
+       frame_name || null, frame_mrp || null, frame_discount_pct || null,
+       lens_name || null, lens_mrp || null, lens_discount_pct || null,
+       advance || null, advance_payment_mode || null, balance_payment_mode || null]
     );
-
-    await saveVisitPrescriptions(req.params.id, visit.id, vision_type, dv, nv);
-    const { rows: prescriptions } = await pool.query(
-      'SELECT * FROM prescriptions WHERE visit_id=$1 ORDER BY vision_row', [visit.id]
-    );
-    res.json({ ...visit, prescriptions });
+    res.json(visit);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// PUT /visits/:visitId — update a challan (visit + prescription + frame/lens/payment)
+// PUT /visits/:visitId — update a visit record
 router.put('/visits/:visitId', async (req, res) => {
   try {
     const {
-      visit_date, notes, vision_type, dv, nv,
-      frame_name, frame_mrp, frame_discount,
-      lens_name, lens_mrp, lens_discount, advance
+      visit_date, notes,
+      frame_name, frame_mrp, frame_discount_pct,
+      lens_name, lens_mrp, lens_discount_pct,
+      advance, advance_payment_mode, balance_payment_mode
     } = req.body;
-    const { total_amount, balance } = calcChallanTotals(req.body);
+    const total_amount = calcVisitTotal(req.body);
 
     const { rows: [visit] } = await pool.query(
       `UPDATE customer_visits
        SET visit_date=$1, notes=$2, total_amount=$3,
-           frame_name=$4, frame_mrp=$5, frame_discount=$6,
-           lens_name=$7, lens_mrp=$8, lens_discount=$9, advance=$10, balance=$11
-       WHERE id=$12 RETURNING *`,
+           frame_name=$4, frame_mrp=$5, frame_discount_pct=$6,
+           lens_name=$7, lens_mrp=$8, lens_discount_pct=$9,
+           advance=$10, advance_payment_mode=$11, balance_payment_mode=$12
+       WHERE id=$13 RETURNING *`,
       [visit_date || new Date(), notes || null, total_amount,
-       frame_name || null, frame_mrp || null, frame_discount || null,
-       lens_name || null, lens_mrp || null, lens_discount || null,
-       advance || null, balance, req.params.visitId]
+       frame_name || null, frame_mrp || null, frame_discount_pct || null,
+       lens_name || null, lens_mrp || null, lens_discount_pct || null,
+       advance || null, advance_payment_mode || null, balance_payment_mode || null,
+       req.params.visitId]
     );
     if (!visit) return res.status(404).json({ error: 'Visit not found' });
-
-    await saveVisitPrescriptions(visit.customer_id, visit.id, vision_type, dv, nv);
-    const { rows: prescriptions } = await pool.query(
-      'SELECT * FROM prescriptions WHERE visit_id=$1 ORDER BY vision_row', [visit.id]
-    );
-    res.json({ ...visit, prescriptions });
+    res.json(visit);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

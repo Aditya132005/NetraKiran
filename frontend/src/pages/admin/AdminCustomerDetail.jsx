@@ -2,16 +2,26 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../utils/api'
 
-const EMPTY_RX_ROW = { right_sph:'', right_cyl:'', right_axis:'', left_sph:'', left_cyl:'', left_axis:'' }
+const EMPTY_RX = {
+  prescription_type: 'lens',
+  right_sph:'', right_cyl:'', right_axis:'', right_add:'',
+  left_sph:'', left_cyl:'', left_axis:'', left_add:'',
+  pd_distance:'', pd_near:'', add_vision_right:'', add_vision_left:'',
+  vision_type:'Single Vision', doctor_name:'', power_source:'Shop', notes:'',
+  contact_lens_type:'', disposable_schedule:'', pack_quantity:'', num_lenses:''
+}
 
-const EMPTY_CHALLAN = {
-  visit_date: '',
-  vision_type: 'Single Vision',
-  dv: { ...EMPTY_RX_ROW },
-  nv: { ...EMPTY_RX_ROW },
-  frame_name: '', frame_mrp: '', frame_discount: '',
-  lens_name: '', lens_mrp: '', lens_discount: '',
-  advance: '', notes: ''
+const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'Other']
+const BALANCE_PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'Other', 'Pending']
+
+function emptyVisit() {
+  return {
+    visit_date: todayDatetimeLocal(),
+    frame_name:'', frame_mrp:'', frame_discount_pct:'',
+    lens_name:'', lens_mrp:'', lens_discount_pct:'',
+    advance:'', advance_payment_mode:'Cash', balance_payment_mode:'Pending',
+    notes:''
+  }
 }
 
 function todayDatetimeLocal() {
@@ -33,26 +43,116 @@ function formatPhoneForWhatsApp(phone) {
   return digits
 }
 
-function calcChallanTotals({ frame_mrp, frame_discount, lens_mrp, lens_discount, advance }) {
-  const total = (Number(frame_mrp) || 0) + (Number(lens_mrp) || 0)
-    - (Number(frame_discount) || 0) - (Number(lens_discount) || 0)
-  const balance = total - (Number(advance) || 0)
-  return { total, balance }
+function buildWhatsAppMessage(rx, customerName, customerTitle) {
+  const date = new Date(rx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const patient = `${customerTitle ? customerTitle + ' ' : ''}${customerName}`
+
+  if (rx.prescription_type === 'contact') {
+    return `🔵 *NetraKiran — Contact Lens Prescription*
+━━━━━━━━━━━━━━━━━━━━
+Patient: ${patient}
+Date: ${date}
+
+Lens Type: ${rx.contact_lens_type || '—'}
+Schedule: ${rx.disposable_schedule || '—'}
+Pack: ${rx.pack_quantity || '—'}
+No. of Lenses: ${rx.num_lenses || '—'}
+👨‍⚕️ Doctor: ${rx.doctor_name || '—'}
+━━━━━━━━━━━━━━━━━━━━
+For queries, contact NetraKiran.`
+  }
+
+  return `👁️ *NetraKiran — Prescription Details*
+━━━━━━━━━━━━━━━━━━━━
+Patient: ${patient}
+Date: ${date}
+
+*RIGHT EYE (OD)*
+• SPH: ${rx.right_sph || '—'}   CYL: ${rx.right_cyl || '—'}
+• AXIS: ${rx.right_axis || '—'}   ADD: ${rx.right_add || '—'}
+
+*LEFT EYE (OS)*
+• SPH: ${rx.left_sph || '—'}   CYL: ${rx.left_cyl || '—'}
+• AXIS: ${rx.left_axis || '—'}   ADD: ${rx.left_add || '—'}
+
+📏 PD Distance: ${rx.pd_distance || '—'}
+🔬 Vision Type: ${rx.vision_type || '—'}
+👨‍⚕️ Doctor: ${rx.doctor_name || '—'}
+━━━━━━━━━━━━━━━━━━━━
+For queries, contact NetraKiran.`
+}
+
+function sendRxOnWhatsApp(rx, customer) {
+  const phone = formatPhoneForWhatsApp(customer?.phone)
+  const message = buildWhatsAppMessage(rx, customer?.full_name || 'Customer', customer?.title)
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+  window.open(url, '_blank')
+}
+
+// Legacy visits (recorded before the frame/lens % discount fields existed)
+// stored a flat total_amount + an overall discount_given %.
+function calcOriginalAmount(totalAmount, discountGiven) {
+  const total = Number(totalAmount) || 0
+  const discount = Number(discountGiven) || 0
+  if (!discount) return total
+  return Math.round(total / (1 - discount / 100))
+}
+
+function calcDiscountedAmount(mrp, discountPct) {
+  const m = Number(mrp) || 0
+  const p = Number(discountPct) || 0
+  return Math.round(m * (1 - p / 100) * 100) / 100
+}
+
+function calcVisitTotals(form) {
+  const frameAmt = calcDiscountedAmount(form.frame_mrp, form.frame_discount_pct)
+  const lensAmt = calcDiscountedAmount(form.lens_mrp, form.lens_discount_pct)
+  const total = frameAmt + lensAmt
+  const balance = total - (Number(form.advance) || 0)
+  return { frameAmt, lensAmt, total, balance }
 }
 
 function rupees(n) {
   return `₹${(Number(n) || 0).toLocaleString('en-IN')}`
 }
 
-function buildChallanMessage(challan, customer) {
-  const date = new Date(challan.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-  const patient = `${customer?.title ? customer.title + ' ' : ''}${customer?.full_name || 'Customer'}`
-  const dv = challan.dv || {}
-  const nv = challan.nv || {}
-  const g = (obj, f) => obj[f] || '—'
-  const total = challan.total_amount != null ? Number(challan.total_amount) : calcChallanTotals(challan).total
-  const advance = Number(challan.advance) || 0
-  const balance = challan.balance != null ? Number(challan.balance) : total - advance
+function buildBillWhatsAppMessage(visit, customerName, customerTitle) {
+  const date = new Date(visit.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  const patient = `${customerTitle ? customerTitle + ' ' : ''}${customerName}`
+  const isLegacy = !visit.frame_name && !visit.lens_name
+
+  if (isLegacy) {
+    const total = Number(visit.total_amount) || 0
+    const discount = Number(visit.discount_given) || 0
+    let pricingBlock
+    if (discount > 0) {
+      const original = calcOriginalAmount(total, discount)
+      const saved = original - total
+      pricingBlock = `💰 *Pricing*
+Original Amount: ₹${original.toLocaleString('en-IN')}
+Discount: ${discount}% (−₹${saved.toLocaleString('en-IN')})
+*Final Amount: ₹${total.toLocaleString('en-IN')}*`
+    } else {
+      pricingBlock = `*Amount Paid: ₹${total.toLocaleString('en-IN')}*`
+    }
+    return `🧾 *NetraKiran — Purchase Receipt*
+━━━━━━━━━━━━━━━━━━━━
+Customer: ${patient}
+Date: ${date}
+
+🛍️ Items: ${visit.items_purchased || '—'}
+
+${pricingBlock}
+
+Thank you for visiting NetraKiran! 🙏
+━━━━━━━━━━━━━━━━━━━━`
+  }
+
+  const frameAmt = calcDiscountedAmount(visit.frame_mrp, visit.frame_discount_pct)
+  const lensAmt = calcDiscountedAmount(visit.lens_mrp, visit.lens_discount_pct)
+  const total = visit.total_amount != null ? Number(visit.total_amount) : frameAmt + lensAmt
+  const advance = Number(visit.advance) || 0
+  const balance = total - advance
 
   let msg = `*NetraKiran Optics*
 LGF/3, Retailx Shopping Complex, Abhay Khand-3, Indirapuram
@@ -61,25 +161,19 @@ LGF/3, Retailx Shopping Complex, Abhay Khand-3, Indirapuram
 *Customer:* ${patient}
 *Date:* ${date}
 
-*PRESCRIPTION*
-|      | RIGHT |     |      | LEFT |     |      |
-|      | Sph   | Cyl | Axis | Sph  | Cyl | Axis |
-| D.V. | ${g(dv,'right_sph')} | ${g(dv,'right_cyl')} | ${g(dv,'right_axis')} | ${g(dv,'left_sph')} | ${g(dv,'left_cyl')} | ${g(dv,'left_axis')} |
-| N.V. | ${g(nv,'right_sph')} | ${g(nv,'right_cyl')} | ${g(nv,'right_axis')} | ${g(nv,'left_sph')} | ${g(nv,'left_cyl')} | ${g(nv,'left_axis')} |
-
-*Frame:* ${challan.frame_name || '—'}  MRP: ${rupees(challan.frame_mrp)}  Disc: ${rupees(challan.frame_discount)}
-*Lens:* ${challan.lens_name || '—'}  MRP: ${rupees(challan.lens_mrp)}  Disc: ${rupees(challan.lens_discount)}
+*Frame:* ${visit.frame_name || '—'}  MRP: ${rupees(visit.frame_mrp)}  Disc: ${visit.frame_discount_pct || 0}% → ${rupees(frameAmt)}
+*Lens:* ${visit.lens_name || '—'}  MRP: ${rupees(visit.lens_mrp)}  Disc: ${visit.lens_discount_pct || 0}% → ${rupees(lensAmt)}
 *Total:* ${rupees(total)}
-*Advance:* ${rupees(advance)}
-*Balance:* ${rupees(balance)}`
+*Advance:* ${rupees(advance)}${visit.advance_payment_mode ? ` (${visit.advance_payment_mode})` : ''}
+*Balance:* ${rupees(balance)}${visit.balance_payment_mode ? ` (${visit.balance_payment_mode})` : ''}`
 
-  if (challan.notes) msg += `\n\n${challan.notes}`
+  if (visit.notes) msg += `\n\n${visit.notes}`
   return msg
 }
 
-function sendChallanOnWhatsApp(challan, customer) {
+function sendBillOnWhatsApp(visit, customer) {
   const phone = formatPhoneForWhatsApp(customer?.phone)
-  const message = buildChallanMessage(challan, customer)
+  const message = buildBillWhatsAppMessage(visit, customer?.full_name || 'Customer', customer?.title)
   const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
   window.open(url, '_blank')
 }
@@ -97,10 +191,14 @@ export default function AdminCustomerDetail() {
   const [infoForm, setInfoForm] = useState({})
   const [savingInfo, setSavingInfo] = useState(false)
 
-  const [showChallanForm, setShowChallanForm] = useState(false)
-  const [challanForm, setChallanForm] = useState({ ...EMPTY_CHALLAN, visit_date: todayDatetimeLocal() })
-  const [editingChallanId, setEditingChallanId] = useState(null)
-  const [savingChallan, setSavingChallan] = useState(false)
+  const [showRxForm, setShowRxForm] = useState(false)
+  const [rxForm, setRxForm] = useState({ ...EMPTY_RX })
+  const [editingRxId, setEditingRxId] = useState(null)
+
+  const [showVisitForm, setShowVisitForm] = useState(false)
+  const [visitForm, setVisitForm] = useState(emptyVisit())
+  const [editingVisitId, setEditingVisitId] = useState(null)
+  const [editVisitForm, setEditVisitForm] = useState({})
 
   const load = async () => {
     try {
@@ -141,92 +239,134 @@ export default function AdminCustomerDetail() {
     }
   }
 
-  // ── Challan History ────────────────────────────────────────────────
+  // ── Prescriptions ──────────────────────────────────────────────────
 
-  const challans = visits.map(v => ({
-    ...v,
-    dv: prescriptions.find(p => p.visit_id === v.id && p.vision_row === 'DV') || null,
-    nv: prescriptions.find(p => p.visit_id === v.id && p.vision_row === 'NV') || null,
-  }))
-
-  const openAddChallan = () => {
-    setChallanForm({ ...EMPTY_CHALLAN, visit_date: todayDatetimeLocal() })
-    setEditingChallanId(null)
-    setShowChallanForm(true)
+  const openAddRx = () => {
+    setRxForm({ ...EMPTY_RX })
+    setEditingRxId(null)
+    setShowRxForm(true)
   }
 
-  const openEditChallan = (challan) => {
-    const isLegacy = !challan.frame_name && !challan.lens_name && !challan.frame_mrp && !challan.lens_mrp
-    setChallanForm({
-      visit_date: toDatetimeLocal(challan.visit_date),
-      vision_type: challan.dv?.vision_type || challan.nv?.vision_type || 'Single Vision',
-      dv: challan.dv ? {
-        right_sph: challan.dv.right_sph || '', right_cyl: challan.dv.right_cyl || '', right_axis: challan.dv.right_axis || '',
-        left_sph: challan.dv.left_sph || '', left_cyl: challan.dv.left_cyl || '', left_axis: challan.dv.left_axis || ''
-      } : { ...EMPTY_RX_ROW },
-      nv: challan.nv ? {
-        right_sph: challan.nv.right_sph || '', right_cyl: challan.nv.right_cyl || '', right_axis: challan.nv.right_axis || '',
-        left_sph: challan.nv.left_sph || '', left_cyl: challan.nv.left_cyl || '', left_axis: challan.nv.left_axis || ''
-      } : { ...EMPTY_RX_ROW },
-      frame_name: challan.frame_name || (isLegacy ? (challan.items_purchased || '') : ''),
-      frame_mrp: challan.frame_mrp ?? (isLegacy ? (challan.total_amount ?? '') : ''),
-      frame_discount: challan.frame_discount ?? '',
-      lens_name: challan.lens_name || '',
-      lens_mrp: challan.lens_mrp ?? '',
-      lens_discount: challan.lens_discount ?? '',
-      advance: challan.advance ?? '',
-      notes: challan.notes || ''
+  const openEditRx = (rx) => {
+    setRxForm({
+      prescription_type: rx.prescription_type || 'lens',
+      right_sph: rx.right_sph ?? '',
+      right_cyl: rx.right_cyl ?? '',
+      right_axis: rx.right_axis ?? '',
+      right_add: rx.right_add ?? '',
+      left_sph: rx.left_sph ?? '',
+      left_cyl: rx.left_cyl ?? '',
+      left_axis: rx.left_axis ?? '',
+      left_add: rx.left_add ?? '',
+      pd_distance: rx.pd_distance ?? '',
+      pd_near: rx.pd_near ?? '',
+      add_vision_right: rx.add_vision_right ?? '',
+      add_vision_left: rx.add_vision_left ?? '',
+      vision_type: rx.vision_type || 'Single Vision',
+      doctor_name: rx.doctor_name || '',
+      power_source: rx.power_source || 'Shop',
+      notes: rx.notes || '',
+      contact_lens_type: rx.contact_lens_type || '',
+      disposable_schedule: rx.disposable_schedule || '',
+      pack_quantity: rx.pack_quantity || '',
+      num_lenses: rx.num_lenses ?? ''
     })
-    setEditingChallanId(challan.id)
-    setShowChallanForm(true)
+    setEditingRxId(rx.id)
+    setShowRxForm(true)
   }
 
-  const closeChallanForm = () => {
-    setShowChallanForm(false)
-    setEditingChallanId(null)
-    setChallanForm({ ...EMPTY_CHALLAN, visit_date: todayDatetimeLocal() })
+  const closeRxForm = () => {
+    setShowRxForm(false)
+    setEditingRxId(null)
+    setRxForm({ ...EMPTY_RX })
   }
 
-  const saveChallan = async (e) => {
+  const saveRx = async (e) => {
     e.preventDefault()
-    setSavingChallan(true)
-    const payload = { ...challanForm }
     try {
-      if (editingChallanId) {
-        const { data } = await api.put(`/customer-profiles/visits/${editingChallanId}`, payload)
-        setVisits(prev => prev.map(v => v.id === editingChallanId ? data : v))
-        setPrescriptions(prev => [
-          ...prev.filter(p => p.visit_id !== editingChallanId),
-          ...(data.prescriptions || [])
-        ])
+      if (editingRxId) {
+        const { data } = await api.put(`/customer-profiles/prescriptions/${editingRxId}`, rxForm)
+        setPrescriptions(prev => prev.map(p => p.id === editingRxId ? data : p))
+      } else if (rxForm.prescription_type === 'both') {
+        const { data: lensData } = await api.post(`/customer-profiles/${id}/prescriptions`, { ...rxForm, prescription_type: 'lens' })
+        const { data: contactData } = await api.post(`/customer-profiles/${id}/prescriptions`, { ...rxForm, prescription_type: 'contact' })
+        setPrescriptions(prev => [lensData, contactData, ...prev])
       } else {
-        const { data } = await api.post(`/customer-profiles/${id}/visits`, payload)
-        setVisits(prev => [data, ...prev])
-        setPrescriptions(prev => [...(data.prescriptions || []), ...prev])
+        const { data } = await api.post(`/customer-profiles/${id}/prescriptions`, rxForm)
+        setPrescriptions(prev => [data, ...prev])
       }
-      closeChallanForm()
+      closeRxForm()
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to save challan')
-    } finally {
-      setSavingChallan(false)
+      alert(err.response?.data?.error || 'Failed to save prescription')
     }
   }
 
-  const deleteChallan = async (visitId) => {
-    if (!confirm('Delete this challan record?')) return
+  const deleteRx = async (rxId) => {
+    if (!confirm('Delete this prescription?')) return
+    try {
+      await api.delete(`/customer-profiles/prescriptions/${rxId}`)
+      setPrescriptions(prev => prev.filter(p => p.id !== rxId))
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete prescription')
+    }
+  }
+
+  // ── Visits ──────────────────────────────────────────────────────────
+
+  const addVisit = async (e) => {
+    e.preventDefault()
+    try {
+      const { data } = await api.post(`/customer-profiles/${id}/visits`, visitForm)
+      setVisits(prev => [data, ...prev])
+      setShowVisitForm(false)
+      setVisitForm(emptyVisit())
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to save visit')
+    }
+  }
+
+  const openEditVisit = (v) => {
+    setEditVisitForm({
+      visit_date: toDatetimeLocal(v.visit_date),
+      frame_name: v.frame_name || '',
+      frame_mrp: v.frame_mrp ?? '',
+      frame_discount_pct: v.frame_discount_pct ?? '',
+      lens_name: v.lens_name || '',
+      lens_mrp: v.lens_mrp ?? '',
+      lens_discount_pct: v.lens_discount_pct ?? '',
+      advance: v.advance ?? '',
+      advance_payment_mode: v.advance_payment_mode || 'Cash',
+      balance_payment_mode: v.balance_payment_mode || 'Pending',
+      notes: v.notes || ''
+    })
+    setEditingVisitId(v.id)
+  }
+
+  const saveEditVisit = async (e) => {
+    e.preventDefault()
+    try {
+      const { data } = await api.put(`/customer-profiles/visits/${editingVisitId}`, editVisitForm)
+      setVisits(prev => prev.map(v => v.id === editingVisitId ? data : v))
+      setEditingVisitId(null)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to update visit')
+    }
+  }
+
+  const deleteVisit = async (visitId) => {
+    if (!confirm('Delete this visit record?')) return
     try {
       await api.delete(`/customer-profiles/visits/${visitId}`)
       setVisits(prev => prev.filter(v => v.id !== visitId))
-      setPrescriptions(prev => prev.filter(p => p.visit_id !== visitId))
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete challan')
+      alert(err.response?.data?.error || 'Failed to delete visit')
     }
   }
 
   const setInfo = k => e => setInfoForm(p => ({ ...p, [k]: e.target.value }))
-  const setChallan = k => e => setChallanForm(p => ({ ...p, [k]: e.target.value }))
-  const setDv = f => e => setChallanForm(p => ({ ...p, dv: { ...p.dv, [f]: e.target.value } }))
-  const setNv = f => e => setChallanForm(p => ({ ...p, nv: { ...p.nv, [f]: e.target.value } }))
+  const setRx = k => e => setRxForm(p => ({ ...p, [k]: e.target.value }))
+  const setVisit = k => e => setVisitForm(p => ({ ...p, [k]: e.target.value }))
+  const setEV = k => e => setEditVisitForm(p => ({ ...p, [k]: e.target.value }))
 
   if (loading) {
     return (
@@ -237,8 +377,11 @@ export default function AdminCustomerDetail() {
   }
   if (!customer) return null
 
-  const latestChallan = challans[0]
-  const { total: formTotal, balance: formBalance } = calcChallanTotals(challanForm)
+  const latestVisit = visits[0]
+  const currentRx = prescriptions[0]
+  const previousRx = prescriptions.slice(1)
+  const newVisitTotals = calcVisitTotals(visitForm)
+  const editVisitTotals = editingVisitId ? calcVisitTotals(editVisitForm) : null
 
   return (
     <div className="space-y-6 max-w-4xl pb-10">
@@ -264,10 +407,10 @@ export default function AdminCustomerDetail() {
       {/* Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          ['Total Visits', challans.length],
-          ['Last Visit', latestChallan ? new Date(latestChallan.visit_date).toLocaleDateString('en-IN', { day:'numeric', month:'short' }) : '—'],
-          ['Last Total', latestChallan?.total_amount ? rupees(latestChallan.total_amount) : '—'],
-          ['Last Balance', latestChallan?.balance != null ? rupees(latestChallan.balance) : '—'],
+          ['Total Visits', visits.length],
+          ['Last Visit', latestVisit ? new Date(latestVisit.visit_date).toLocaleDateString('en-IN', { day:'numeric', month:'short' }) : '—'],
+          ['Last Total', latestVisit?.total_amount ? rupees(latestVisit.total_amount) : '—'],
+          ['Last Advance', latestVisit?.advance != null && latestVisit.advance !== '' ? rupees(latestVisit.advance) : '—'],
         ].map(([label, value]) => (
           <div key={label} className="card p-4 text-center">
             <p className="text-2xl font-bold text-navy-800">{value}</p>
@@ -339,139 +482,475 @@ export default function AdminCustomerDetail() {
         )}
       </div>
 
-      {/* Challan History */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-heading font-semibold text-base text-gray-800">Challan History</h2>
-          <button
-            onClick={showChallanForm ? closeChallanForm : openAddChallan}
-            className="btn-primary py-1.5 px-3 text-sm"
-          >
-            {showChallanForm ? '✕ Cancel' : '+ Add Challan'}
-          </button>
+      {/* Prescriptions & Visit History — grouped together visually */}
+      <div className="card p-5 space-y-6">
+        {/* Prescriptions */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-base text-gray-800">Prescriptions</h2>
+            <button
+              onClick={showRxForm ? closeRxForm : openAddRx}
+              className="btn-primary py-1.5 px-3 text-sm"
+            >
+              {showRxForm ? '✕ Cancel' : '+ Add New'}
+            </button>
+          </div>
+
+          {showRxForm && (
+            <form onSubmit={saveRx} className="card p-4 space-y-3 bg-gray-50 border mb-4">
+              <h4 className="font-medium text-sm text-gray-700">
+                {editingRxId ? 'Edit Prescription' : 'New Prescription'}
+              </h4>
+
+              {/* Prescription type selector */}
+              <div className={`grid gap-2 ${editingRxId ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {(editingRxId
+                  ? [['lens','Spectacle Lens'],['contact','Contact Lens']]
+                  : [['lens','Spectacle Lens'],['contact','Contact Lens'],['both','Both']]
+                ).map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setRxForm(p => ({ ...p, prescription_type: val }))}
+                    className={`p-3 rounded-xl border-2 text-sm font-medium transition-colors text-center ${
+                      rxForm.prescription_type === val
+                        ? 'border-navy-800 bg-navy-50 text-navy-800'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {rxForm.prescription_type === 'both' ? (
+                <>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Section A · Spectacle Lens Details</p>
+                  <div className="overflow-x-auto">
+                    <table className="text-xs w-full">
+                      <thead>
+                        <tr className="bg-navy-800 text-white">
+                          <th className="p-2">Eye</th><th className="p-2">SPH</th><th className="p-2">CYL</th><th className="p-2">AXIS</th><th className="p-2">ADD</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-white">
+                          <td className="p-1 font-medium text-center">OD (Right)</td>
+                          {['right_sph','right_cyl','right_axis','right_add'].map(f => (
+                            <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={rxForm[f]} onChange={setRx(f)}/></td>
+                          ))}
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td className="p-1 font-medium text-center">OS (Left)</td>
+                          {['left_sph','left_cyl','left_axis','left_add'].map(f => (
+                            <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={rxForm[f]} onChange={setRx(f)}/></td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><label className="label text-xs">PD Distance</label><input className="input py-1 text-sm" value={rxForm.pd_distance} onChange={setRx('pd_distance')}/></div>
+                    <div><label className="label text-xs">PD Right</label><input className="input py-1 text-sm" value={rxForm.add_vision_right} onChange={setRx('add_vision_right')}/></div>
+                    <div><label className="label text-xs">PD Left</label><input className="input py-1 text-sm" value={rxForm.add_vision_left} onChange={setRx('add_vision_left')}/></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="label text-xs">Vision Type</label>
+                      <select className="input py-1 text-sm" value={rxForm.vision_type} onChange={setRx('vision_type')}>
+                        {['Single Vision','Progressive','Bifocal','Trifocal','Tinted','Photochromic','Blue Cut','Hardcoat'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Power Source</label>
+                      <select className="input py-1 text-sm" value={rxForm.power_source} onChange={setRx('power_source')}>
+                        {['Shop','External Doctor','Self-Provided','Other'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-1">Section B · Contact Lens Details</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="label text-xs">Type of Contact Lens</label>
+                      <select className="input py-1 text-sm" value={rxForm.contact_lens_type} onChange={setRx('contact_lens_type')}>
+                        <option value="">Select type…</option>
+                        {['Soft Contact Lenses','Orthokeratology (Ortho-K) Lenses','Colored Contact Lenses','Daily Disposable Lenses'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Disposable Schedule</label>
+                      <select className="input py-1 text-sm" value={rxForm.disposable_schedule} onChange={setRx('disposable_schedule')}>
+                        <option value="">Select schedule…</option>
+                        {['Daily Disposable','Bi-Weekly Disposable','Monthly Disposable','Yearly Disposable'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Pack Quantity</label>
+                      <select className="input py-1 text-sm" value={rxForm.pack_quantity} onChange={setRx('pack_quantity')}>
+                        <option value="">Select pack…</option>
+                        {['Trial Pack','Pack of 1','Pack of 2','Pack of 3','Pack of 4','Pack of 5'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Number of Lenses</label>
+                      <input className="input py-1 text-sm" type="number" min="1" placeholder="e.g. 6, 12, 30" value={rxForm.num_lenses} onChange={setRx('num_lenses')}/>
+                    </div>
+                  </div>
+                  <div><label className="label text-xs">Doctor</label><input className="input py-1 text-sm" placeholder="Dr. ..." value={rxForm.doctor_name} onChange={setRx('doctor_name')}/></div>
+                  <div><label className="label text-xs">Notes</label><textarea className="input text-sm resize-none" rows="2" value={rxForm.notes} onChange={setRx('notes')}/></div>
+                </>
+              ) : rxForm.prescription_type === 'lens' ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="text-xs w-full">
+                      <thead>
+                        <tr className="bg-navy-800 text-white">
+                          <th className="p-2">Eye</th><th className="p-2">SPH</th><th className="p-2">CYL</th><th className="p-2">AXIS</th><th className="p-2">ADD</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-white">
+                          <td className="p-1 font-medium text-center">OD (Right)</td>
+                          {['right_sph','right_cyl','right_axis','right_add'].map(f => (
+                            <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={rxForm[f]} onChange={setRx(f)}/></td>
+                          ))}
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td className="p-1 font-medium text-center">OS (Left)</td>
+                          {['left_sph','left_cyl','left_axis','left_add'].map(f => (
+                            <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={rxForm[f]} onChange={setRx(f)}/></td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><label className="label text-xs">PD Distance</label><input className="input py-1 text-sm" value={rxForm.pd_distance} onChange={setRx('pd_distance')}/></div>
+                    <div><label className="label text-xs">PD Right</label><input className="input py-1 text-sm" value={rxForm.add_vision_right} onChange={setRx('add_vision_right')}/></div>
+                    <div><label className="label text-xs">PD Left</label><input className="input py-1 text-sm" value={rxForm.add_vision_left} onChange={setRx('add_vision_left')}/></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="label text-xs">Vision Type</label>
+                      <select className="input py-1 text-sm" value={rxForm.vision_type} onChange={setRx('vision_type')}>
+                        {['Single Vision','Progressive','Bifocal','Trifocal','Tinted','Photochromic','Blue Cut','Hardcoat'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div><label className="label text-xs">Doctor</label><input className="input py-1 text-sm" placeholder="Dr. ..." value={rxForm.doctor_name} onChange={setRx('doctor_name')}/></div>
+                    <div>
+                      <label className="label text-xs">Power Source</label>
+                      <select className="input py-1 text-sm" value={rxForm.power_source} onChange={setRx('power_source')}>
+                        {['Shop','External Doctor','Self-Provided','Other'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div><label className="label text-xs">Notes</label><textarea className="input text-sm resize-none" rows="2" value={rxForm.notes} onChange={setRx('notes')}/></div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="label text-xs">Type of Contact Lens</label>
+                      <select className="input py-1 text-sm" value={rxForm.contact_lens_type} onChange={setRx('contact_lens_type')}>
+                        <option value="">Select type…</option>
+                        {['Soft Contact Lenses','Orthokeratology (Ortho-K) Lenses','Colored Contact Lenses','Daily Disposable Lenses'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Disposable Schedule</label>
+                      <select className="input py-1 text-sm" value={rxForm.disposable_schedule} onChange={setRx('disposable_schedule')}>
+                        <option value="">Select schedule…</option>
+                        {['Daily Disposable','Bi-Weekly Disposable','Monthly Disposable','Yearly Disposable'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Pack Quantity</label>
+                      <select className="input py-1 text-sm" value={rxForm.pack_quantity} onChange={setRx('pack_quantity')}>
+                        <option value="">Select pack…</option>
+                        {['Trial Pack','Pack of 1','Pack of 2','Pack of 3','Pack of 4','Pack of 5'].map(v => <option key={v}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label text-xs">Number of Lenses</label>
+                      <input className="input py-1 text-sm" type="number" min="1" placeholder="e.g. 6, 12, 30" value={rxForm.num_lenses} onChange={setRx('num_lenses')}/>
+                    </div>
+                  </div>
+                  <div><label className="label text-xs">Doctor</label><input className="input py-1 text-sm" placeholder="Dr. ..." value={rxForm.doctor_name} onChange={setRx('doctor_name')}/></div>
+                  <div><label className="label text-xs">Notes</label><textarea className="input text-sm resize-none" rows="2" value={rxForm.notes} onChange={setRx('notes')}/></div>
+                </>
+              )}
+
+              <button type="submit" className="btn-primary text-sm py-2">
+                {editingRxId ? 'Update Prescription' : 'Save Prescription'}
+              </button>
+            </form>
+          )}
+
+          {prescriptions.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-6">No prescriptions recorded yet</p>
+          ) : (
+            <div className="space-y-4">
+              {currentRx && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Current Prescription</p>
+                  <RxCard rx={currentRx} customer={customer} defaultOpen onEdit={openEditRx} onDelete={deleteRx} />
+                </div>
+              )}
+              {previousRx.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    Previous Prescriptions ({previousRx.length})
+                  </p>
+                  <div className="space-y-2">
+                    {previousRx.map(rx => (
+                      <RxCard key={rx.id} rx={rx} customer={customer} onEdit={openEditRx} onDelete={deleteRx} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {showChallanForm && (
-          <form onSubmit={saveChallan} className="card p-4 space-y-4 bg-gray-50 border mb-4">
-            <h4 className="font-medium text-sm text-gray-700">
-              {editingChallanId ? 'Edit Challan' : 'New Challan'}
-            </h4>
+        <hr className="border-gray-200" />
 
-            <div className="grid grid-cols-2 gap-3">
+        {/* Visit History */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading font-semibold text-base text-gray-800">Visit History</h2>
+            <button onClick={() => setShowVisitForm(!showVisitForm)} className="btn-primary py-1.5 px-3 text-sm">
+              {showVisitForm ? '✕ Cancel' : '+ Add Visit'}
+            </button>
+          </div>
+
+          {showVisitForm && (
+            <form onSubmit={addVisit} className="card p-4 space-y-3 bg-gray-50 border mb-4">
+              <h4 className="font-medium text-sm text-gray-700">Record Visit</h4>
               <div>
                 <label className="label text-xs">Date & Time</label>
-                <input className="input py-1 text-sm" type="datetime-local" value={challanForm.visit_date} onChange={setChallan('visit_date')} />
+                <input className="input py-1 text-sm" type="datetime-local" value={visitForm.visit_date} onChange={setVisit('visit_date')}/>
               </div>
-              <div>
-                <label className="label text-xs">Vision Type</label>
-                <select className="input py-1 text-sm" value={challanForm.vision_type} onChange={setChallan('vision_type')}>
-                  {['Single Vision','Bifocal','Progressive','Contact Lens'].map(v => <option key={v}>{v}</option>)}
-                </select>
-              </div>
-            </div>
 
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Prescription</p>
-              <div className="overflow-x-auto">
-                <table className="text-xs w-full">
-                  <thead>
-                    <tr className="bg-navy-800 text-white text-center">
-                      <th className="p-2" rowSpan={2}>Vision</th>
-                      <th className="p-2" colSpan={3}>Right Eye</th>
-                      <th className="p-2" colSpan={3}>Left Eye</th>
-                    </tr>
-                    <tr className="bg-navy-700 text-white text-center">
-                      <th className="p-1.5">Sph</th><th className="p-1.5">Cyl</th><th className="p-1.5">Axis</th>
-                      <th className="p-1.5">Sph</th><th className="p-1.5">Cyl</th><th className="p-1.5">Axis</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="bg-white">
-                      <td className="p-1 font-medium text-center">D.V.</td>
-                      {['right_sph','right_cyl','right_axis','left_sph','left_cyl','left_axis'].map(f => (
-                        <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={challanForm.dv[f]} onChange={setDv(f)}/></td>
-                      ))}
-                    </tr>
-                    <tr className="bg-gray-50">
-                      <td className="p-1 font-medium text-center">N.V.</td>
-                      {['right_sph','right_cyl','right_axis','left_sph','left_cyl','left_axis'].map(f => (
-                        <td key={f} className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={challanForm.nv[f]} onChange={setNv(f)}/></td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Frame</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Frame</p>
               <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-1"><label className="label text-xs">Name / Description</label><input className="input py-1 text-sm" value={challanForm.frame_name} onChange={setChallan('frame_name')}/></div>
-                <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={challanForm.frame_mrp} onChange={setChallan('frame_mrp')}/></div>
-                <div><label className="label text-xs">Discount (₹)</label><input className="input py-1 text-sm" type="number" value={challanForm.frame_discount} onChange={setChallan('frame_discount')}/></div>
+                <div><label className="label text-xs">Name / Description</label><input className="input py-1 text-sm" value={visitForm.frame_name} onChange={setVisit('frame_name')}/></div>
+                <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={visitForm.frame_mrp} onChange={setVisit('frame_mrp')}/></div>
+                <div><label className="label text-xs">Discount (%)</label><input className="input py-1 text-sm" type="number" min="0" max="100" value={visitForm.frame_discount_pct} onChange={setVisit('frame_discount_pct')}/></div>
               </div>
-            </div>
+              <p className="text-xs text-gray-500">Frame price after discount: <span className="font-semibold text-gray-800">{rupees(newVisitTotals.frameAmt)}</span></p>
 
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Lens</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Lens</p>
               <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-1"><label className="label text-xs">Name / Description</label><input className="input py-1 text-sm" value={challanForm.lens_name} onChange={setChallan('lens_name')}/></div>
-                <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={challanForm.lens_mrp} onChange={setChallan('lens_mrp')}/></div>
-                <div><label className="label text-xs">Discount (₹)</label><input className="input py-1 text-sm" type="number" value={challanForm.lens_discount} onChange={setChallan('lens_discount')}/></div>
+                <div><label className="label text-xs">Name / Description</label><input className="input py-1 text-sm" value={visitForm.lens_name} onChange={setVisit('lens_name')}/></div>
+                <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={visitForm.lens_mrp} onChange={setVisit('lens_mrp')}/></div>
+                <div><label className="label text-xs">Discount (%)</label><input className="input py-1 text-sm" type="number" min="0" max="100" value={visitForm.lens_discount_pct} onChange={setVisit('lens_discount_pct')}/></div>
               </div>
-            </div>
+              <p className="text-xs text-gray-500">Lens price after discount: <span className="font-semibold text-gray-800">{rupees(newVisitTotals.lensAmt)}</span></p>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-navy-50 rounded-lg p-2 text-center">
+              <div className="bg-navy-50 rounded-lg p-3 text-center">
                 <p className="text-xs text-gray-400">Total</p>
-                <p className="font-bold text-navy-800">{rupees(formTotal)}</p>
+                <p className="font-bold text-navy-800 text-lg">{rupees(newVisitTotals.total)}</p>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label text-xs">Advance (₹)</label>
+                  <input className="input py-1 text-sm" type="number" value={visitForm.advance} onChange={setVisit('advance')}/>
+                </div>
+                <div>
+                  <label className="label text-xs">Advance Payment Mode</label>
+                  <select className="input py-1 text-sm" value={visitForm.advance_payment_mode} onChange={setVisit('advance_payment_mode')}>
+                    {PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 items-end">
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-400">Balance</p>
+                  <p className="font-bold text-green-700 text-lg">{rupees(newVisitTotals.balance)}</p>
+                </div>
+                <div>
+                  <label className="label text-xs">Balance Payment Mode</label>
+                  <select className="input py-1 text-sm" value={visitForm.balance_payment_mode} onChange={setVisit('balance_payment_mode')}>
+                    {BALANCE_PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="label text-xs">Advance (₹)</label>
-                <input className="input py-1 text-sm" type="number" value={challanForm.advance} onChange={setChallan('advance')}/>
+                <label className="label text-xs">Notes</label>
+                <textarea className="input text-sm resize-none" rows="2" value={visitForm.notes} onChange={setVisit('notes')}/>
               </div>
-              <div className="bg-green-50 rounded-lg p-2 text-center">
-                <p className="text-xs text-gray-400">Balance</p>
-                <p className="font-bold text-green-700">{rupees(formBalance)}</p>
-              </div>
+              <button type="submit" className="btn-primary text-sm py-2">Save Visit</button>
+            </form>
+          )}
+
+          {visits.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-6">No visits recorded yet</p>
+          ) : (
+            <div className="space-y-3">
+              {visits.map(v => (
+                editingVisitId === v.id ? (
+                  <form key={v.id} onSubmit={saveEditVisit} className="card p-4 space-y-3 bg-blue-50 border">
+                    <div>
+                      <label className="label text-xs">Date & Time</label>
+                      <input className="input py-1 text-sm" type="datetime-local" value={editVisitForm.visit_date} onChange={setEV('visit_date')}/>
+                    </div>
+
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Frame</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div><label className="label text-xs">Name / Description</label><input className="input py-1 text-sm" value={editVisitForm.frame_name} onChange={setEV('frame_name')}/></div>
+                      <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={editVisitForm.frame_mrp} onChange={setEV('frame_mrp')}/></div>
+                      <div><label className="label text-xs">Discount (%)</label><input className="input py-1 text-sm" type="number" min="0" max="100" value={editVisitForm.frame_discount_pct} onChange={setEV('frame_discount_pct')}/></div>
+                    </div>
+                    <p className="text-xs text-gray-500">Frame price after discount: <span className="font-semibold text-gray-800">{rupees(editVisitTotals.frameAmt)}</span></p>
+
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Lens</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div><label className="label text-xs">Name / Description</label><input className="input py-1 text-sm" value={editVisitForm.lens_name} onChange={setEV('lens_name')}/></div>
+                      <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={editVisitForm.lens_mrp} onChange={setEV('lens_mrp')}/></div>
+                      <div><label className="label text-xs">Discount (%)</label><input className="input py-1 text-sm" type="number" min="0" max="100" value={editVisitForm.lens_discount_pct} onChange={setEV('lens_discount_pct')}/></div>
+                    </div>
+                    <p className="text-xs text-gray-500">Lens price after discount: <span className="font-semibold text-gray-800">{rupees(editVisitTotals.lensAmt)}</span></p>
+
+                    <div className="bg-navy-50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-gray-400">Total</p>
+                      <p className="font-bold text-navy-800 text-lg">{rupees(editVisitTotals.total)}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label text-xs">Advance (₹)</label>
+                        <input className="input py-1 text-sm" type="number" value={editVisitForm.advance} onChange={setEV('advance')}/>
+                      </div>
+                      <div>
+                        <label className="label text-xs">Advance Payment Mode</label>
+                        <select className="input py-1 text-sm" value={editVisitForm.advance_payment_mode} onChange={setEV('advance_payment_mode')}>
+                          {PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 items-end">
+                      <div className="bg-green-50 rounded-lg p-3 text-center">
+                        <p className="text-xs text-gray-400">Balance</p>
+                        <p className="font-bold text-green-700 text-lg">{rupees(editVisitTotals.balance)}</p>
+                      </div>
+                      <div>
+                        <label className="label text-xs">Balance Payment Mode</label>
+                        <select className="input py-1 text-sm" value={editVisitForm.balance_payment_mode} onChange={setEV('balance_payment_mode')}>
+                          {BALANCE_PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="label text-xs">Notes</label>
+                      <textarea className="input text-sm resize-none" rows="2" value={editVisitForm.notes} onChange={setEV('notes')}/>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="submit" className="btn-primary text-xs py-1.5 px-3">Save</button>
+                      <button type="button" onClick={() => setEditingVisitId(null)} className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
+                    </div>
+                  </form>
+                ) : (
+                  <VisitCard key={v.id} visit={v} customer={customer} onEdit={openEditVisit} onDelete={deleteVisit} />
+                )
+              ))}
             </div>
-
-            <div><label className="label text-xs">Notes</label><textarea className="input text-sm resize-none" rows="2" value={challanForm.notes} onChange={setChallan('notes')}/></div>
-
-            <button type="submit" disabled={savingChallan} className="btn-primary text-sm py-2">
-              {savingChallan ? 'Saving…' : editingChallanId ? 'Update Challan' : 'Save Challan'}
-            </button>
-          </form>
-        )}
-
-        {challans.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-6">No challans recorded yet</p>
-        ) : (
-          <div className="space-y-3">
-            {challans.map((challan, idx) => (
-              <ChallanCard
-                key={challan.id}
-                challan={challan}
-                customer={customer}
-                defaultOpen={idx === 0}
-                onEdit={openEditChallan}
-                onDelete={deleteChallan}
-              />
-            ))}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function ChallanCard({ challan, customer, defaultOpen = false, onEdit, onDelete }) {
-  const [open, setOpen] = useState(defaultOpen)
-  const hasRx = challan.dv || challan.nv
-  const hasBreakdown = challan.frame_name || challan.lens_name || challan.frame_mrp || challan.lens_mrp
-  const total = challan.total_amount != null ? Number(challan.total_amount) : null
-  const balance = challan.balance != null ? Number(challan.balance) : null
+function VisitCard({ visit, customer, onEdit, onDelete }) {
+  const isLegacy = !visit.frame_name && !visit.lens_name
+  const frameAmt = calcDiscountedAmount(visit.frame_mrp, visit.frame_discount_pct)
+  const lensAmt = calcDiscountedAmount(visit.lens_mrp, visit.lens_discount_pct)
+  const total = visit.total_amount != null ? Number(visit.total_amount) : frameAmt + lensAmt
+  const advance = Number(visit.advance) || 0
+  const balance = total - advance
 
+  return (
+    <div className="border rounded-xl p-4 hover:bg-gray-50 transition-colors">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-gray-700 font-medium">{new Date(visit.visit_date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</p>
+          <p className="text-xs text-gray-400">{new Date(visit.visit_date).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })}</p>
+        </div>
+        <div className="flex gap-1.5">
+          <button type="button" onClick={() => onEdit(visit)} className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Edit</button>
+          <button type="button" onClick={() => onDelete(visit.id)} className="text-xs px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors">Delete</button>
+          <button
+            type="button"
+            onClick={() => sendBillOnWhatsApp(visit, customer)}
+            className="text-xs px-2 py-1 text-white rounded-lg transition-colors flex items-center gap-1"
+            style={{ backgroundColor: '#25D366' }}
+          >
+            💬 Bill
+          </button>
+        </div>
+      </div>
+
+      {isLegacy ? (
+        <div className="mt-3 text-sm">
+          <p className="text-gray-800">{visit.items_purchased || '—'}</p>
+          {visit.total_amount ? (
+            visit.discount_given ? (
+              <div className="mt-1">
+                <p className="text-xs text-gray-400 line-through">₹{calcOriginalAmount(visit.total_amount, visit.discount_given).toLocaleString('en-IN')}</p>
+                <p className="text-xs text-amber-600">−{visit.discount_given}%</p>
+                <p className="font-semibold text-green-600">₹{Number(visit.total_amount).toLocaleString('en-IN')}</p>
+              </div>
+            ) : (
+              <p className="font-semibold text-green-600 mt-1">₹{Number(visit.total_amount).toLocaleString('en-IN')}</p>
+            )
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div className="bg-gray-50 rounded-lg p-2">
+            <div className="text-gray-400">Frame</div>
+            <div className="font-medium">{visit.frame_name || '—'}</div>
+            <div className="text-gray-500 mt-0.5">MRP: {rupees(visit.frame_mrp)} · Disc: {visit.frame_discount_pct || 0}% → {rupees(frameAmt)}</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-2">
+            <div className="text-gray-400">Lens</div>
+            <div className="font-medium">{visit.lens_name || '—'}</div>
+            <div className="text-gray-500 mt-0.5">MRP: {rupees(visit.lens_mrp)} · Disc: {visit.lens_discount_pct || 0}% → {rupees(lensAmt)}</div>
+          </div>
+        </div>
+      )}
+
+      {!isLegacy && (
+        <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+          <div className="bg-navy-50 rounded-lg p-2 text-center">
+            <div className="text-gray-400">Total</div>
+            <div className="font-bold text-navy-800">{rupees(total)}</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-2 text-center">
+            <div className="text-gray-400">Advance</div>
+            <div className="font-medium">{rupees(advance)}</div>
+            {visit.advance_payment_mode && <div className="text-gray-400">{visit.advance_payment_mode}</div>}
+          </div>
+          <div className="bg-green-50 rounded-lg p-2 text-center">
+            <div className="text-gray-400">Balance</div>
+            <div className="font-bold text-green-700">{rupees(balance)}</div>
+            {visit.balance_payment_mode && <div className="text-gray-400">{visit.balance_payment_mode}</div>}
+          </div>
+        </div>
+      )}
+
+      {visit.notes && <p className="text-xs text-gray-500 mt-2">{visit.notes}</p>}
+    </div>
+  )
+}
+
+function RxCard({ rx, customer, defaultOpen = false, onEdit, onDelete }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="border rounded-xl overflow-hidden">
       <button
@@ -479,12 +958,21 @@ function ChallanCard({ challan, customer, defaultOpen = false, onEdit, onDelete 
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm text-gray-800">
-            {new Date(challan.visit_date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
+          {rx.prescription_type === 'contact' ? (
+            <>
+              <span className="font-medium text-sm text-gray-800">{rx.contact_lens_type || 'Contact Lens'}</span>
+              <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full">Contact Lens</span>
+            </>
+          ) : (
+            <span className="font-medium text-sm text-gray-800">{rx.vision_type}</span>
+          )}
+          <span className="text-xs text-gray-400">
+            {new Date(rx.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
           </span>
-          {challan.dv?.vision_type && <span className="text-xs bg-navy-100 text-navy-700 px-2 py-0.5 rounded-full">{challan.dv.vision_type}</span>}
-          {total != null && <span className="text-xs text-gray-500">Total: {rupees(total)}</span>}
-          {balance != null && balance > 0 && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Balance: {rupees(balance)}</span>}
+          {rx.doctor_name && <span className="text-xs text-gray-500">· Dr. {rx.doctor_name}</span>}
+          {rx.prescription_type !== 'contact' && rx.power_source && rx.power_source !== 'Shop' && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">External RX</span>
+          )}
         </div>
         <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -492,92 +980,73 @@ function ChallanCard({ challan, customer, defaultOpen = false, onEdit, onDelete 
       </button>
       {open && (
         <div className="p-4 space-y-3 bg-white">
-          <div className="overflow-x-auto">
-            <table className="text-xs w-full border-collapse">
-              <thead>
-                <tr className="bg-navy-800 text-white text-center">
-                  <th className="p-2" rowSpan={2}>Vision</th>
-                  <th className="p-2" colSpan={3}>Right Eye</th>
-                  <th className="p-2" colSpan={3}>Left Eye</th>
-                </tr>
-                <tr className="bg-navy-700 text-white text-center">
-                  <th className="p-1.5">Sph</th><th className="p-1.5">Cyl</th><th className="p-1.5">Axis</th>
-                  <th className="p-1.5">Sph</th><th className="p-1.5">Cyl</th><th className="p-1.5">Axis</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="text-center border-b">
-                  <td className="p-2 font-medium bg-gray-50">D.V.</td>
-                  {['right_sph','right_cyl','right_axis','left_sph','left_cyl','left_axis'].map(f => (
-                    <td key={f} className="p-2">{challan.dv?.[f] || '—'}</td>
-                  ))}
-                </tr>
-                <tr className="text-center">
-                  <td className="p-2 font-medium bg-gray-50">N.V.</td>
-                  {['right_sph','right_cyl','right_axis','left_sph','left_cyl','left_axis'].map(f => (
-                    <td key={f} className="p-2">{challan.nv?.[f] || '—'}</td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          {!hasRx && <p className="text-xs text-gray-400 text-center">No prescription recorded for this visit</p>}
-
-          {hasBreakdown ? (
+          {rx.prescription_type === 'contact' ? (
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-gray-50 rounded-lg p-2">
-                <div className="text-gray-400">Frame</div>
-                <div className="font-medium">{challan.frame_name || '—'}</div>
-                <div className="text-gray-500 mt-0.5">MRP: {rupees(challan.frame_mrp)} · Disc: {rupees(challan.frame_discount)}</div>
+              {[
+                ['Lens Type', rx.contact_lens_type],
+                ['Disposable Schedule', rx.disposable_schedule],
+                ['Pack Quantity', rx.pack_quantity],
+                ['Number of Lenses', rx.num_lenses],
+              ].map(([k, v]) => (
+                <div key={k} className="bg-gray-50 rounded-lg p-2">
+                  <div className="text-gray-400">{k}</div>
+                  <div className="font-medium">{v || '—'}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="text-xs w-full border-collapse">
+                  <thead>
+                    <tr className="bg-navy-800 text-white text-center">
+                      <th className="p-2">Eye</th><th className="p-2">SPH</th><th className="p-2">CYL</th><th className="p-2">AXIS</th><th className="p-2">ADD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="text-center border-b">
+                      <td className="p-2 font-medium bg-gray-50">OD (Right)</td>
+                      {[rx.right_sph, rx.right_cyl, rx.right_axis, rx.right_add].map((v, i) => <td key={i} className="p-2">{v || '—'}</td>)}
+                    </tr>
+                    <tr className="text-center">
+                      <td className="p-2 font-medium bg-gray-50">OS (Left)</td>
+                      {[rx.left_sph, rx.left_cyl, rx.left_axis, rx.left_add].map((v, i) => <td key={i} className="p-2">{v || '—'}</td>)}
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div className="bg-gray-50 rounded-lg p-2">
-                <div className="text-gray-400">Lens</div>
-                <div className="font-medium">{challan.lens_name || '—'}</div>
-                <div className="text-gray-500 mt-0.5">MRP: {rupees(challan.lens_mrp)} · Disc: {rupees(challan.lens_discount)}</div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                {[['PD Dist', rx.pd_distance], ['PD Right', rx.add_vision_right], ['PD Left', rx.add_vision_left]].map(([k, v]) => (
+                  <div key={k} className="bg-gray-50 rounded-lg p-2 text-center">
+                    <div className="text-gray-400">{k}</div>
+                    <div className="font-medium">{v || '—'}</div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ) : challan.items_purchased ? (
-            <div className="bg-gray-50 rounded-lg p-2 text-xs">
-              <div className="text-gray-400">Items Purchased</div>
-              <div className="font-medium">{challan.items_purchased}</div>
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="bg-navy-50 rounded-lg p-2 text-center">
-              <div className="text-gray-400">Total</div>
-              <div className="font-bold text-navy-800">{total != null ? rupees(total) : '—'}</div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-2 text-center">
-              <div className="text-gray-400">Advance</div>
-              <div className="font-medium">{challan.advance != null ? rupees(challan.advance) : '—'}</div>
-            </div>
-            <div className="bg-green-50 rounded-lg p-2 text-center">
-              <div className="text-gray-400">Balance</div>
-              <div className="font-bold text-green-700">{balance != null ? rupees(balance) : '—'}</div>
-            </div>
-          </div>
-
-          {challan.notes && <p className="text-xs text-gray-600 bg-yellow-50 p-2 rounded">{challan.notes}</p>}
-
+              {rx.power_source && rx.power_source !== 'Shop' && (
+                <p className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded">Power from: {rx.power_source}</p>
+              )}
+            </>
+          )}
+          {rx.notes && <p className="text-xs text-gray-600 bg-yellow-50 p-2 rounded">{rx.notes}</p>}
           <div className="flex gap-2 pt-1 border-t">
             <button
               type="button"
-              onClick={e => { e.stopPropagation(); onEdit(challan) }}
+              onClick={e => { e.stopPropagation(); onEdit(rx) }}
               className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
             >
               Edit
             </button>
             <button
               type="button"
-              onClick={e => { e.stopPropagation(); onDelete(challan.id) }}
+              onClick={e => { e.stopPropagation(); onDelete(rx.id) }}
               className="text-xs px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
             >
               Delete
             </button>
             <button
               type="button"
-              onClick={e => { e.stopPropagation(); sendChallanOnWhatsApp(challan, customer) }}
+              onClick={e => { e.stopPropagation(); sendRxOnWhatsApp(rx, customer) }}
               className="text-xs px-3 py-1.5 text-white rounded-lg transition-colors flex items-center gap-1.5"
               style={{ backgroundColor: '#25D366' }}
             >
