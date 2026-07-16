@@ -161,6 +161,36 @@ async function initDB() {
   await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS pack_quantity VARCHAR(20)`);
   await pool.query(`ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS num_lenses INTEGER`);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS challans (
+      id SERIAL PRIMARY KEY,
+      customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+      job_no INTEGER,
+      date_of_booking DATE,
+      date_of_delivery DATE,
+      right_sph NUMERIC(5,2),
+      right_cyl NUMERIC(5,2),
+      right_axis INTEGER,
+      right_vision VARCHAR(50),
+      right_add NUMERIC(5,2),
+      left_sph NUMERIC(5,2),
+      left_cyl NUMERIC(5,2),
+      left_axis INTEGER,
+      left_vision VARCHAR(50),
+      left_add NUMERIC(5,2),
+      frame_name TEXT,
+      frame_mrp NUMERIC(10,2),
+      frame_discount_pct NUMERIC(5,2) DEFAULT 0,
+      lens_name TEXT,
+      lens_mrp NUMERIC(10,2),
+      lens_discount_pct NUMERIC(5,2) DEFAULT 0,
+      advance NUMERIC(10,2) DEFAULT 0,
+      advance_payment_mode VARCHAR(20) DEFAULT 'Cash',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
   // Visit purchase breakdown: frame/lens with % discount, advance + payment modes
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS frame_name TEXT`);
   await pool.query(`ALTER TABLE customer_visits ADD COLUMN IF NOT EXISTS frame_mrp NUMERIC(10,2)`);
