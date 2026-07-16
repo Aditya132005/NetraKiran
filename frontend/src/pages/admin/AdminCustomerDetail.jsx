@@ -196,6 +196,7 @@ export default function AdminCustomerDetail() {
   const [infoForm, setInfoForm] = useState({})
   const [savingInfo, setSavingInfo] = useState(false)
 
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [showRxForm, setShowRxForm] = useState(false)
   const [rxForm, setRxForm] = useState({ ...EMPTY_RX })
   const [editingRxId, setEditingRxId] = useState(null)
@@ -487,19 +488,45 @@ export default function AdminCustomerDetail() {
         )}
       </div>
 
-      {/* Prescriptions & Visit History — grouped together visually */}
+      {/* Prescriptions & Visit History — combined section */}
       <div className="card p-5 space-y-6">
-        {/* Prescriptions */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading font-semibold text-base text-gray-800">Prescriptions</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading font-semibold text-base text-gray-800">Prescriptions & Visit History</h2>
+          <div className="relative">
             <button
-              onClick={showRxForm ? closeRxForm : openAddRx}
+              onClick={() => {
+                if (showRxForm) { closeRxForm(); return }
+                if (showVisitForm) { setShowVisitForm(false); return }
+                setAddMenuOpen(o => !o)
+              }}
               className="btn-primary py-1.5 px-3 text-sm"
             >
-              {showRxForm ? '✕ Cancel' : '+ Add New'}
+              {showRxForm || showVisitForm ? '✕ Cancel' : addMenuOpen ? '✕ Close' : '+ Add'}
             </button>
+            {addMenuOpen && !showRxForm && !showVisitForm && (
+              <div className="absolute right-0 mt-1 w-48 bg-white border rounded-lg shadow-lg z-10 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => { setAddMenuOpen(false); openAddRx() }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  + Add Prescription
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAddMenuOpen(false); setShowVisitForm(true) }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  + Add Visit
+                </button>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Prescriptions */}
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Prescriptions</p>
 
           {showRxForm && (
             <form onSubmit={saveRx} className="card p-4 space-y-3 bg-gray-50 border mb-4">
@@ -721,12 +748,7 @@ export default function AdminCustomerDetail() {
 
         {/* Visit History */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-heading font-semibold text-base text-gray-800">Visit History</h2>
-            <button onClick={() => setShowVisitForm(!showVisitForm)} className="btn-primary py-1.5 px-3 text-sm">
-              {showVisitForm ? '✕ Cancel' : '+ Add Visit'}
-            </button>
-          </div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Visit History</p>
 
           {showVisitForm && (
             <form onSubmit={addVisit} className="card p-4 space-y-3 bg-gray-50 border mb-4">
