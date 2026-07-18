@@ -23,7 +23,7 @@ function emptyChallan() {
     date_of_booking: todayDate(),
     date_of_delivery: '',
     right_sph: '', right_cyl: '', right_axis: '', right_vision: '', right_add: '',
-    left_sph: '', left_cyl: '', left_axis: '', left_add: '',
+    left_sph: '', left_cyl: '', left_axis: '', left_vision: '', left_add: '',
     frame_name: '', frame_mrp: '', frame_discount_pct: '',
     lens_name: '', lens_mrp: '', lens_discount_pct: '',
     advance: '', advance_payment_mode: 'Cash',
@@ -85,7 +85,7 @@ LGF-3 Retailx Shopping Complex, Abhay Khand Part-3, Indirapuram GZB
 *SPECTACLE POWER*
        SPH    CYL    AXIS   VISION   ADD
 R:    ${challan.right_sph ?? '—'}  ${challan.right_cyl ?? '—'}  ${challan.right_axis ?? '—'}  ${challan.right_vision || '—'}   ${challan.right_add ?? '—'}
-L:    ${challan.left_sph ?? '—'}  ${challan.left_cyl ?? '—'}  ${challan.left_axis ?? '—'}           ${challan.left_add ?? '—'}
+L:    ${challan.left_sph ?? '—'}  ${challan.left_cyl ?? '—'}  ${challan.left_axis ?? '—'}  ${challan.left_vision || '—'}   ${challan.left_add ?? '—'}
 
 *Frame:* ${challan.frame_name || '—'}
 MRP: ₹${(Number(challan.frame_mrp) || 0).toLocaleString('en-IN')} | Discount: ${challan.frame_discount_pct || 0}% | Amount: ₹${frameAmt.toLocaleString('en-IN')}
@@ -179,7 +179,8 @@ export default function AdminCustomerDetail() {
       date_of_delivery: toDateInput(c.date_of_delivery),
       right_sph: c.right_sph ?? '', right_cyl: c.right_cyl ?? '', right_axis: c.right_axis ?? '',
       right_vision: c.right_vision || '', right_add: c.right_add ?? '',
-      left_sph: c.left_sph ?? '', left_cyl: c.left_cyl ?? '', left_axis: c.left_axis ?? '', left_add: c.left_add ?? '',
+      left_sph: c.left_sph ?? '', left_cyl: c.left_cyl ?? '', left_axis: c.left_axis ?? '',
+      left_vision: c.left_vision || '', left_add: c.left_add ?? '',
       frame_name: c.frame_name || '', frame_mrp: c.frame_mrp ?? '', frame_discount_pct: c.frame_discount_pct ?? '',
       lens_name: c.lens_name || '', lens_mrp: c.lens_mrp ?? '', lens_discount_pct: c.lens_discount_pct ?? '',
       advance: c.advance ?? '', advance_payment_mode: c.advance_payment_mode || 'Cash',
@@ -403,7 +404,7 @@ function ChallanFormFields({ form, setField, totals }) {
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.right_sph} onChange={setField('right_sph')}/></td>
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.right_cyl} onChange={setField('right_cyl')}/></td>
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.right_axis} onChange={setField('right_axis')}/></td>
-              <td className="p-1" rowSpan={2}><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.right_vision} onChange={setField('right_vision')}/></td>
+              <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.right_vision} onChange={setField('right_vision')}/></td>
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.right_add} onChange={setField('right_add')}/></td>
             </tr>
             <tr className="bg-gray-50">
@@ -411,6 +412,7 @@ function ChallanFormFields({ form, setField, totals }) {
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.left_sph} onChange={setField('left_sph')}/></td>
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.left_cyl} onChange={setField('left_cyl')}/></td>
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.left_axis} onChange={setField('left_axis')}/></td>
+              <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.left_vision} onChange={setField('left_vision')}/></td>
               <td className="p-1"><input className="input py-1 text-xs text-center w-full" placeholder="—" value={form.left_add} onChange={setField('left_add')}/></td>
             </tr>
           </tbody>
@@ -510,7 +512,7 @@ function ChallanCard({ challan, customer, onEdit, onDelete }) {
               <td className="p-2">{challan.right_sph ?? '—'}</td>
               <td className="p-2">{challan.right_cyl ?? '—'}</td>
               <td className="p-2">{challan.right_axis ?? '—'}</td>
-              <td className="p-2" rowSpan={2}>{challan.right_vision || '—'}</td>
+              <td className="p-2">{challan.right_vision || '—'}</td>
               <td className="p-2">{challan.right_add ?? '—'}</td>
             </tr>
             <tr className="text-center">
@@ -518,6 +520,7 @@ function ChallanCard({ challan, customer, onEdit, onDelete }) {
               <td className="p-2">{challan.left_sph ?? '—'}</td>
               <td className="p-2">{challan.left_cyl ?? '—'}</td>
               <td className="p-2">{challan.left_axis ?? '—'}</td>
+              <td className="p-2">{challan.left_vision || '—'}</td>
               <td className="p-2">{challan.left_add ?? '—'}</td>
             </tr>
           </tbody>
