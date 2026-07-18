@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../utils/api'
 
 const PAYMENT_MODES = ['Cash', 'Card', 'UPI', 'Other']
+const LENS_TYPES = ['Single Vision', 'Progressive', 'Bifocal', 'Poly', 'Tintable']
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10)
@@ -25,7 +26,7 @@ function emptyChallan() {
     right_sph: '', right_cyl: '', right_axis: '', right_vision: '', right_add: '',
     left_sph: '', left_cyl: '', left_axis: '', left_vision: '', left_add: '',
     frame_name: '', frame_mrp: '', frame_discount_pct: '',
-    lens_name: '', lens_mrp: '', lens_discount_pct: '',
+    lens_name: '', lens_mrp: '', lens_discount_pct: '', lens_type: '',
     advance: '', advance_payment_mode: 'Cash',
     notes: ''
   }
@@ -90,7 +91,7 @@ L:    ${challan.left_sph ?? '—'}  ${challan.left_cyl ?? '—'}  ${challan.left
 *Frame:* ${challan.frame_name || '—'}
 MRP: ₹${(Number(challan.frame_mrp) || 0).toLocaleString('en-IN')} | Discount: ${challan.frame_discount_pct || 0}% | Amount: ₹${frameAmt.toLocaleString('en-IN')}
 
-*Lens:* ${challan.lens_name || '—'}
+*Lens:* ${challan.lens_name || '—'}${challan.lens_type ? ` (${challan.lens_type})` : ''}
 MRP: ₹${(Number(challan.lens_mrp) || 0).toLocaleString('en-IN')} | Discount: ${challan.lens_discount_pct || 0}% | Amount: ₹${lensAmt.toLocaleString('en-IN')}
 
 *Total:* ₹${total.toLocaleString('en-IN')}
@@ -182,7 +183,7 @@ export default function AdminCustomerDetail() {
       left_sph: c.left_sph ?? '', left_cyl: c.left_cyl ?? '', left_axis: c.left_axis ?? '',
       left_vision: c.left_vision || '', left_add: c.left_add ?? '',
       frame_name: c.frame_name || '', frame_mrp: c.frame_mrp ?? '', frame_discount_pct: c.frame_discount_pct ?? '',
-      lens_name: c.lens_name || '', lens_mrp: c.lens_mrp ?? '', lens_discount_pct: c.lens_discount_pct ?? '',
+      lens_name: c.lens_name || '', lens_mrp: c.lens_mrp ?? '', lens_discount_pct: c.lens_discount_pct ?? '', lens_type: c.lens_type || '',
       advance: c.advance ?? '', advance_payment_mode: c.advance_payment_mode || 'Cash',
       notes: c.notes || ''
     })
@@ -432,6 +433,13 @@ function ChallanFormFields({ form, setField, totals }) {
         <div><label className="label text-xs">Name</label><input className="input py-1 text-sm" value={form.lens_name} onChange={setField('lens_name')}/></div>
         <div><label className="label text-xs">MRP (₹)</label><input className="input py-1 text-sm" type="number" value={form.lens_mrp} onChange={setField('lens_mrp')}/></div>
         <div><label className="label text-xs">Discount (%)</label><input className="input py-1 text-sm" type="number" min="0" max="100" value={form.lens_discount_pct} onChange={setField('lens_discount_pct')}/></div>
+        <div>
+          <label className="label text-xs">Lens Type</label>
+          <select className="input py-1 text-sm" value={form.lens_type} onChange={setField('lens_type')}>
+            <option value="">—</option>
+            {LENS_TYPES.map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
       </div>
       <p className="text-xs text-gray-500">Lens price after discount: <span className="font-semibold text-gray-800">{rupees(totals.lensAmt)}</span></p>
 
@@ -535,7 +543,7 @@ function ChallanCard({ challan, customer, onEdit, onDelete }) {
         </div>
         <div className="bg-gray-50 rounded-lg p-2">
           <div className="text-gray-400">Lens</div>
-          <div className="font-medium">{challan.lens_name || '—'}</div>
+          <div className="font-medium">{challan.lens_name || '—'}{challan.lens_type ? <span className="text-gray-500 font-normal"> ({challan.lens_type})</span> : ''}</div>
           <div className="text-gray-500 mt-0.5">MRP: {rupees(challan.lens_mrp)} · Disc: {challan.lens_discount_pct || 0}% → {rupees(lensAmt)}</div>
         </div>
       </div>

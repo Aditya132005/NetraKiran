@@ -1,0 +1,1 @@
+ALTER TABLE challans ADD COLUMN IF NOT EXISTS lens_type VARCHAR(50);

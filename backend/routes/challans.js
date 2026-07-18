@@ -7,7 +7,7 @@ const FIELDS = [
   'right_sph', 'right_cyl', 'right_axis', 'right_vision', 'right_add',
   'left_sph', 'left_cyl', 'left_axis', 'left_vision', 'left_add',
   'frame_name', 'frame_mrp', 'frame_discount_pct',
-  'lens_name', 'lens_mrp', 'lens_discount_pct',
+  'lens_name', 'lens_mrp', 'lens_discount_pct', 'lens_type',
   'advance', 'advance_payment_mode', 'notes'
 ];
 
